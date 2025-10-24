@@ -28,5 +28,5 @@ graph.add_edge("get_chunks", "generate_code")
 graph.add_edge("generate_code", "execute_code")
 graph.add_conditional_edges("execute_code", is_valid_code)
 graph.add_edge("correct_code", "execute_code")
-workflow_app = graph.compile(checkpointer=memory)
+workflow_app = graph.compile()
 
