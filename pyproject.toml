@@ -16,7 +16,7 @@ dependencies = [
     "chromadb>=1.2.0",
     "fastapi>=0.119.0",
     "pydantic>=2.12.3",
-    "langchain-openai = "^0.1.0"
+    "langchain-openai>=0.1.0"
 ]
 
 
