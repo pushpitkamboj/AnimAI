@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-langgraph
-pydantic
-chromadb
-langchain
-langchain-openai
-e2b_code_interpreter
