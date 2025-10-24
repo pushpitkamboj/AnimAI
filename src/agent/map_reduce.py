@@ -1,6 +1,7 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import os
 from typing import Any, Dict
 # import numpy as np
 from agent.graph_state import State
@@ -8,7 +9,13 @@ import chromadb
 from langchain_core.messages import AIMessage
 from langgraph.types import Send
 
-client = chromadb.CloudClient()
+api_key = os.getenv("CHROMA_API_KEY")
+database = os.getenv("CHROMA_DATABASE")
+tenant = os.getenv("CHROMA_TENANT")
+
+client = chromadb.CloudClient(
+    api_key=api_key, database=database, tenant=tenant
+)
 
 
 def continue_instructions(state: State):
