@@ -54,13 +54,14 @@ High-level flow
 ## Technologies used
 
 - Python 3.10+
-- Manim (rendering)
+- Manim library (rendering)
 - LangChain / langchain_core (agent logic)
 - LangGraph (workflow orchestration)
-- Langsmith (optional tracing & deployment)
+- Langsmith (for tracing & deployment)
 - FastAPI (optional REST endpoint)
 - Chroma or other vector store (RAG)
-- SQLModel / SQLite (examples)
+- Cloudflare R2
+- e2b code interpreter for sandboxing the code execution
 
 Key files: `pyproject.toml`, `src/agent/`, `src/rag/`, `src/api/main.py`.
 
@@ -198,3 +199,8 @@ If you'd like I can also:
 - add a `docker-compose.yml` for local testing (worker + API + vector DB),
 - create a `quickstart.md` with screenshots and sample prompts, or
 - pin dependency versions and add `requirements-dev.txt`.
+
+## Special thanks
+
+Special thanks to the Manim community for their beautiful documentation, examples, and continuous support — their work greatly inspired this project. See the official docs: https://docs.manim.community/en/stable/index.html
+Note: Manim library and Manim Community edition are different, refer manim community docs for more details.
