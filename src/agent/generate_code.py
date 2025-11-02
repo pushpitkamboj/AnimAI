@@ -6,7 +6,7 @@ from langchain_core.messages import AIMessage
 from pydantic import BaseModel
 from agent.graph_state import State
 
-llm = init_chat_model("openai:gpt-4.1")
+llm = init_chat_model("openai:gpt-5")
 
 class output_code(BaseModel):
     code: str
