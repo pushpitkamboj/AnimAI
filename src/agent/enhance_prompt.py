@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from typing import List
 
 from agent.graph_state import State
-llm = init_chat_model("openai:gpt-4.1")
+llm = init_chat_model("openai:gpt-5")
 
 class output_format(BaseModel):
     steps: List[str]
