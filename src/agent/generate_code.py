@@ -111,9 +111,95 @@ Strict rules (must obey):
         Always include a line: "No LaTeX: use Text('...') or Unicode for all labels and formulas." in the output metadata. Keep instructions short (1–10 independent actions).
 
         9. Testing / CI guidance (recommended)
-
         Include a quick runtime sanity-check snippet in generated boilerplate (non-blocking) that asserts no LaTeX functions are referenced. For example, before the Scene class, add a small comment and a check for forbidden tokens. If any are present, raise a clear error message describing the forbidden token and the required replacement.
 
+        10. Layout & Framing Standards - (absolutely mandatory for clean visuals)
+
+        a. Frame-relative positioning
+        Never hardcode coordinates like LEFT*3. Use config.frame_width and config.frame_height for adaptive layout.
+        Example:
+        circle.move_to(LEFT * config.frame_width * 0.3)
+        text.to_edge(UP, buff=0.3)
+
+
+        b. Safe scaling
+        All mobjects must fit within the frame.
+        Example:
+        group.scale_to_fit_width(config.frame_width * 0.85)
+
+
+        c. Grouping and spacing
+        Use VGroup or Group to manage related elements.
+        Example:
+        group = VGroup(axes, graph, label).arrange(DOWN, buff=0.3)
+
+        This prevents overlapping visuals.
+
+        d. Z-order and layering
+        Control visibility order using:
+
+        title.set_z_index(10)
+        axes.set_z_index(1)
+        graph.set_z_index(2)
+
+
+        e. Camera control
+        Do not manually rescale all elements. Instead, use:
+
+        self.camera.frame.animate.scale(0.8).move_to(center_object)
+        Keep visuals centered and within bounds.
+
+        f. Margins and safe area
+        Keep key visuals within 85% of frame width/height.
+        Important text and titles should have a top margin (buff=0.3) and side margins (0.5).
+
+        g. Collision avoidance
+        If objects overlap, reposition them:
+
+        text.next_to(shape, UP, buff=0.2)
+        or group them and .arrange() automatically.
+
+        h. Consistent style constants
+
+        SAFE_FRAME_WIDTH_FRACTION = 0.85
+        TITLE_TOP_BUFFER = 0.3
+
+
+        11. Final layout check
+        Before finishing:
+
+        All visuals must be inside the frame
+        No overlapping text or shapes
+        No forbidden LaTeX tokens
+        Add self.wait(1) after key visuals
+
+        12. Visual Composition & Scene Aesthetics (recommended but highly encouraged)
+
+        a. Alignment & Hierarchy
+        Center the most important object in the scene (e.g., graph, main shape).
+        Supporting elements (text labels, annotations, arrows) must be symmetrically balanced around it.
+
+        b. Readability Priority
+        Ensure all Text objects use a minimum font_size=28 unless otherwise specified.
+        Maintain color contrast — avoid white on bright backgrounds.
+
+        c. Animation Pacing
+        Keep runtime consistent. Short explanatory motions: run_time=1–1.5, complex reveals: run_time=2–3.
+        Always add self.wait(1) after a key reveal or transformation.
+
+        d. Color consistency
+        Use a limited, distinct palette (e.g., BLUE, GREEN, RED, YELLOW, ORANGE) and reuse colors for related concepts.
+        Example: all velocity vectors → BLUE, all acceleration → RED.
+
+        e. Smooth flow
+        Prefer FadeIn, Write, and Transform over Create for text and labeled objects.
+        Avoid abrupt appear/disappear effects unless explicitly described.
+
+        f. Scene balance
+        When multiple visuals exist (e.g., top diagram + bottom text), use VGroup().arrange(DOWN, buff=0.5) for symmetry.
+
+        
+        
 Before any animation, ensure all Mobjects are correctly created, positioned, scaled, and organized (often using VGroup or Group) off-screen or in their initial state. Use helper methods like .to_edge(), .shift(), and .next_next_to() for professional placement. The goal is to maintain a clear visual narrative, where each Mobject's placement and animation contributes to the overall explanation defined by the User Prompt.
 
 When an animation involves rearrangement or transformation (like the area of a circle example), use VGroup to manage the collection of sub-Mobjects before the animation begins.
