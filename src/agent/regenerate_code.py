@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from langgraph.graph import END
 from langchain.chat_models import init_chat_model
 
-llm = init_chat_model("openai:gpt-4.1")
+llm = init_chat_model("openai:gpt-5")
 
 
 class output_code(BaseModel): 
