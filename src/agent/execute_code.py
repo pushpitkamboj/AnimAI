@@ -21,7 +21,7 @@ async def execute_code(state: State):
 
     await sandbox.files.write(f'/home/user/{state["scene_name"]}.py', state["code"]) #create a file scene.py inside the sandbox
     try:
-        result = await sandbox.commands.run(f'manim --media_dir /home/user/bucket/media -r 640,360 --fps 15 /home/user/{state["scene_name"]}.py', timeout=900)
+        result = await sandbox.commands.run(f'manim --media_dir /home/user/bucket/media -ql /home/user/{state["scene_name"]}.py', timeout=500) #change ql to qh for better resolution
     except CommandExitException as error:
         return {
             "sandbox_error": error
@@ -29,7 +29,7 @@ async def execute_code(state: State):
     await sandbox.kill()
     bucket_name = "manim-videos"
     scene_name = state["scene_name"]
-    quality = "360p15" #default is 480p for development
+    quality = "480p15" #default is 480p for development
 
     public_url = f"https://pub-b215a097b7b243dc86da838a88d50339.r2.dev/media/videos/{scene_name}/{quality}/{scene_name}.mp4"
 
