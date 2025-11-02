@@ -29,7 +29,7 @@ async def execute_code(state: State):
     await sandbox.kill()
     bucket_name = "manim-videos"
     scene_name = state["scene_name"]
-    quality = "480p15" #default is 480p for development
+    quality = "360p15" #default is 480p for development
 
     public_url = f"https://pub-b215a097b7b243dc86da838a88d50339.r2.dev/media/videos/{scene_name}/{quality}/{scene_name}.mp4"
 

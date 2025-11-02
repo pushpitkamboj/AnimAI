@@ -176,20 +176,31 @@ def set_z_indices(title: Mobject|None, content_group: VGroup):
         except Exception:
             pass
 
-def scale_group_to_frame(group: VGroup, frame_fraction=DEFAULT_SAFE_FRAME_FRACTION):
+def scale_group_to_frame(group: VGroup, frame_fraction=DEFAULT_SAFE_FRAME_FRACTION, max_upscale=1.15):
+    '''
+    Scale the group so it fits inside frame_fraction of the frame.
+    Unlike before, this allows gentle upscaling (default up to 15%) so small groups
+    won't remain tiny. max_upscale caps how much we enlarge the group.
+    '''
     try:
         fw = config.frame_width * frame_fraction
         fh = config.frame_height * frame_fraction
-        gw = group.width
-        gh = group.height
+        gw = group.width if hasattr(group, "width") else 0
+        gh = group.height if hasattr(group, "height") else 0
         if gw == 0 or gh == 0:
             return
         scale_x = fw / gw
         scale_y = fh / gh
-        target_scale = min(scale_x, scale_y, 1.0)
+        # choose the smaller scale so the group fits both width and height
+        target_scale = min(scale_x, scale_y)
+        # cap the upscale to avoid blowing up tiny glyphs; allow modest upscaling
+        if target_scale > 1.0:
+            target_scale = min(target_scale, max_upscale)
+        # if target_scale < 1.0, it's a downscale (keep it)
         group.scale(target_scale)
     except Exception:
         pass
+
 
 def resolve_overlaps_iteratively(group: VGroup, title: Mobject|None=None):
     current_scale = 1.0
@@ -223,13 +234,26 @@ def resolve_overlaps_iteratively(group: VGroup, title: Mobject|None=None):
 def finalize_layout(scene: Scene, main_group: VGroup, title: Mobject|None=None, frame_fraction=DEFAULT_SAFE_FRAME_FRACTION):
     '''
     REQUIRED: call finalize_layout(self, main_group, title=title) before first self.play()
-    - main_group should contain the scene's core visible mobjects (not HUD/title).
-    - title is optional; if present, it will be placed at the top.
+    - This function ensures main_group is added to the scene temporarily for correct measurement,
+      scales/centers it, sets z-indices, and resolves overlaps.
     '''
+    try:
+        # Make sure main_group is in the scene so measurements like .width/.height are accurate.
+        # If it's not already present, add it temporarily (it won't be visible until rendered).
+        if main_group not in scene.mobjects:
+            scene.add(main_group)
+            _added_temp = True
+        else:
+            _added_temp = False
+    except Exception:
+        _added_temp = False
+
     try:
         main_group.center()
     except Exception:
         pass
+
+    # scale and fix overlaps
     scale_group_to_frame(main_group, frame_fraction=frame_fraction)
     set_z_indices(title, main_group)
     success = resolve_overlaps_iteratively(main_group, title)
@@ -239,13 +263,17 @@ def finalize_layout(scene: Scene, main_group: VGroup, title: Mobject|None=None, 
             main_group.center()
         except Exception:
             pass
+
     if title is not None:
         try:
             title.to_edge(UP, buff=0.18)
             title.set_z_index(TITLE_Z_INDEX)
         except Exception:
             pass
-# ---------- end of layout_utils ----------
+
+    # If we added the group temporarily and caller intended to add later, keep it (no removal).
+    # (Leaving it in the scene is fine — caller can control if they want to re-add.)
+
 
 
 USAGE REQUIREMENTS (exact, non-negotiable)
@@ -330,4 +358,3 @@ If the model cannot produce a scene that satisfies these constraints (after one 
         "code": response.code,
         "scene_name": response.scene_name
     }
-    
