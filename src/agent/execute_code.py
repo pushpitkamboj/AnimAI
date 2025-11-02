@@ -21,7 +21,7 @@ async def execute_code(state: State):
 
     await sandbox.files.write(f'/home/user/{state["scene_name"]}.py', state["code"]) #create a file scene.py inside the sandbox
     try:
-        result = await sandbox.commands.run(f'manim --media_dir /home/user/bucket/media -ql /home/user/{state["scene_name"]}.py', timeout=500) #change ql to qh for better resolution
+        result = await sandbox.commands.run(f'manim --media_dir /home/user/bucket/media -r 640,360 --fps 15 /home/user/{state["scene_name"]}.py', timeout=900)
     except CommandExitException as error:
         return {
             "sandbox_error": error
