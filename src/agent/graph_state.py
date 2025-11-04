@@ -17,3 +17,5 @@ class State(TypedDict):
     sandbox_error: str
     video_url: str
     scene_name: str
+    animation: bool
+    non_animation_reply: str
