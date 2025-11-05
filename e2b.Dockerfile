@@ -33,3 +33,5 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN apt-get update && apt-get install -y texlive-base    
 
 RUN pip install manim
+
+RUN pip install "manim-voiceover[azure,gtts]"
