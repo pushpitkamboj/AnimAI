@@ -51,6 +51,7 @@ High-level flow
 3. Agent produces a Manim script or workflow; rendering is performed by a worker running Manim.
 4. Rendered video is stored and the API returns a shareable URL or status.
 
+## NOTE- the code written in fe folder is not source of truth, the production frontend code is here - https://github.com/AnshBansalOfficial/v0-anim-ai
 ## Technologies used
 
 - Python 3.10+
