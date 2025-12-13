@@ -16,7 +16,7 @@
 
 #base image from e2b.dev with code interpreter
 FROM e2bdev/code-interpreter:latest
-
+USER root
 # Install s3fs (kept from your original request)
 RUN apt-get update -y && apt-get install -y s3fs
 
@@ -30,8 +30,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       curl ca-certificates \
    && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y texlive-base    
+RUN apt install -y perl 
+RUN wget -qO- "https://yihui.org/tinytex/install-bin-unix.sh" | sh
 
 RUN pip install manim
 
-RUN pip install "manim-voiceover[azure,gtts]"
+# RUN apt-get install -y gettext
+
+# RUN apt-get install -y sox libsox-fmt-all
+
+# RUN pip install --upgrade "manim-voiceover[gtts]"

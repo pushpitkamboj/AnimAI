@@ -11,7 +11,7 @@ secret_access_key = os.getenv("secret_access_key")
 access_key_id = os.getenv("access_key_id")
 
 async def execute_code(state: State):
-    sandbox = await AsyncSandbox.create(template='slo53v8nmn3kjq80sd59', timeout= 1000)
+    sandbox = await AsyncSandbox.create(template='h7bsjoys6a5hlspy5gsx', timeout= 1000)
     await sandbox.files.make_dir('/home/user/bucket')
     
     await sandbox.files.write('/root/.passwd-s3fs', f'{access_key_id}:{secret_access_key}')
