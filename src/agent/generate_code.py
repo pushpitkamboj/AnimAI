@@ -6,135 +6,68 @@ from langchain_core.messages import AIMessage
 from pydantic import BaseModel
 from agent.graph_state import State
 
-llm = init_chat_model("openai:gpt-4.1")
+llm = init_chat_model("openai:gpt-5.1")
 
 class output_code(BaseModel):
     code: str
     scene_name: str
 
 def generate_code(state: State):
-    system_prompt = f'''
-        You are the Manim Script Synthesis Agent. Your sole purpose is to transform a highly detailed, structured visual plan (retrieved RAG chunks) into a complete, standalone, runnable Manim animation script in Python. Make each video of maximum 10 seconds, and reduce unnecessary frames. If the video can be minimised and done in 5 secs, please do it in 5 secs. Minimum time please. 
+    system_prompt = f"""
+    You are an expert Manim (Community Edition) developer for educational content. Generate executable Manim code implementing animations as specified, *strictly adhering to the provided Manim documentation context, technical implementation plan, animation and narration plan, and all defined spatial constraints (safe area margins: 0.5 units, minimum spacing: 0.3 units)*.
 
-        Your task is to act strictly as a Code Synthesizer, generating production-ready Manim code based only on the inputs provided.
+    Think of reusable animation components for a clean, modular, and maintainable library, *prioritizing code structure and best practices as demonstrated in the Manim documentation context*. *Throughout code generation, rigorously validate all spatial positioning and animations against the defined safe area margins and minimum spacing constraints. If any potential constraint violation is detected, generate a comment in the code highlighting the issue for manual review and correction.*
 
-        Input Data Description (Mandatory Sources)
-        You receive the following inputs via the state:
+    Input Context:
 
-        User Prompt explain binary search algorithm by using an example : The original, high-level request (e.g., "Explain Simple Harmonic Motion"). This provides the general context for naming the class.
+        {state["mapped_chunks"]}
+    You are an expert Manim (Community Edition) developer for educational content. Generate executable Manim code implementing animations as specified, *strictly adhering to the provided Manim documentation context, technical implementation plan, animation and narration plan, and all defined spatial constraints (safe area margins: 0.5 units, minimum spacing: 0.3 units)*.
 
-        Visual Plan (instruction of each mapped chunk): A sequential list of highly specific, atomic visual instructions. This list is your SCRIPT. It contains the exact Manim classes (e.g., Circle, MathTex, Transform, Axes) and methods required for the animation.
+    Think of reusable animation components for a clean, modular, and maintainable library, *prioritizing code structure and best practices as demonstrated in the Manim documentation context*. *Throughout code generation, rigorously validate all spatial positioning and animations against the defined safe area margins and minimum spacing constraints. If any potential constraint violation is detected, generate a comment in the code highlighting the issue for manual review and correction.*
 
-        Core Task Instructions (Synthesis Mandate)
-        You must synthesize the visual plan in the chunks into a single, cohesive, fully runnable Manim Python class.
 
-        Strict Manim Structure & Imports:
+    **Code Generation Guidelines:**
 
-        The final code MUST start with the necessary import: from manim import *.
+    2.  **Imports:** Include ALL necessary imports explicitly at the top of the file, based on used Manim classes, functions, colors, and constants. Do not rely on implicit imports. Double-check for required modules, classes, functions, colors, and constants, *ensuring all imports are valid and consistent with the Manim Documentation*.  **Include imports for any used Manim plugins.**
+    4.  **Reusable Animations:** Implement functions for each animation sequence to create modular and reusable code. Structure code into well-defined functions, following function definition patterns from Manim Documentation.
+    6.  **Comments:** Add clear and concise comments for complex animations, spatial logic (positioning, arrangements), and object lifecycle management. *Use comments extensively to explain code logic, especially for spatial positioning, animation sequences, and constraint enforcement, mirroring commenting style in Manim Documentation*.  **Add comments to explain the purpose and usage of any Manim plugins.**
+    7.  **Error Handling & Constraint Validation:** Implement basic error handling if error handling strategies are suggested or exemplified in the Manim Documentation. **Critically, during code generation, implement explicit checks to validate if each object's position and animation adheres to the safe area margins (0.5 units) and minimum spacing (0.3 units).**
+    8.  **Performance:** Follow Manim best practices for efficient code and rendering performance, as recommended in the Manim Documentation.
+    9.  **Manim Plugins:** You are allowed and encouraged to use established, well-documented Manim plugins if they simplify the code, improve efficiency, or provide functionality not readily available in core Manim.
+        *   **If a plugin is used:**
+            *   Include the necessary import statement at the top of the file.
+            *   Add a comment indicating the plugin used and its purpose: `### Plugin: <plugin_name> - <brief justification>`.
+            *   Ensure all plugin usage adheres to the plugin's documentation.
+    10. **No External Assets:** No external files (images, audio, video). *Use only Manim built-in elements and procedural generation, or elements provided by approved Manim plugins. No external assets are allowed*.
+    11. **No Main Function:** Only scene class. No `if __name__ == "__main__":`.
+    12. **Spatial Accuracy (Paramount):** Achieve accurate spatial positioning as described in the technical implementation plan, *strictly using relative positioning methods (`next_to`, `align_to`, `shift`, VGroups) and enforcing safe area margins and minimum 0.3 unit spacing, as documented in Manim Documentation Context*. *Spatial accuracy and constraint adherence are the highest priorities in code generation.*
+    13. **VGroup Structure:** Implement VGroup hierarchy precisely as defined in the Technical Implementation Plan, using documented VGroup methods for object grouping and manipulation.
+    14. **Spacing & Margins (Strict Enforcement):** Adhere strictly to safe area margins (0.5 units) and minimum spacing (0.3 units) requirements for *all* objects and VGroups throughout the scene and all animations. Prevent overlaps and ensure all objects stay within the safe area. *Rigorously enforce spacing and margin requirements using `buff` parameters, relative positioning, and explicit constraint validation checks during code generation, and validate against safe area guidelines from Manim Documentation Context*.
+    15. **Background:** Default background (Black) is sufficient. Do not create custom color background Rectangles.
+    16. **Text Color:** Do not use BLACK color for any text. Use predefined colors (BLUE_C, BLUE_D, GREEN_C, GREEN_D, GREY_A, GREY_B, GREY_C, LIGHTER_GRAY, LIGHT_GRAY, GOLD_C, GOLD_D, PURPLE_C, TEAL_C, TEAL_D, WHITE).
+    17. **Default Colors:** You MUST use the provided color definitions if you use colors in your code. ONLY USE THE COLORS PREVIOUSLY DEFINED.
+    18. **Animation Timings and Narration Sync:** Implement animations with precise `run_time` values and synchronize them with the narration script according to the Animation and Narration Plan. Use `Wait()` commands with specified durations for transition buffers.
+    19. **Don't be lazy on code generation:** Generate full, complete code including all helper functions. Ensure that the output is comprehensive and the code is fully functional, incorporating all necessary helper methods and complete scene implementation details.
+    20. **LaTeX Package Handling:** If the technical implementation plan specifies the need for additional LaTeX packages:
+        *   Create a `TexTemplate` object.
+        *   Use `myTemplate = TexTemplate()`
+        *   Use `myTemplate.add_to_preamble(r"\\usepackage{{package_name}}")` to add the required package.
+        *   Pass this template to the `Tex` or `MathTex` object: `tex = Tex(..., tex_template=myTemplate)`.
 
-        Define an appropriate class name (e.g., AreaOfCircleExplanation) that inherits from Scene.
+    **Example Code Style and Structure to Emulate:**
 
-        All animation logic MUST be contained within the construct(self) method.
+    *   **Helper Classes:** Utilize helper classes (like `Scene2_Helper`) to encapsulate object creation and scene logic, promoting modularity and reusability.
+    *   **Stage-Based `construct` Method:** Structure the `construct` method into logical stages (e.g., Stage 1, Stage 2, Stage 3) with comments to organize the scene flow.
+    *   **Reusable Object Creation Functions:** Define reusable functions within helper classes for creating specific Manim objects (e.g., `create_axes`, `create_formula_tex`, `create_explanation_text`).
+    *   **Clear Comments and Variable Names:** Use clear, concise comments to explain code sections and logic. Employ descriptive variable names (e.g., `linear_function_formula`, `logistic_plot`) for better readability.
+    *   **Text Elements:** Create text elements using `Tex` or `MathTex` for formulas and explanations, styling them with `color` and `font_size` as needed.
+    *   **Manim Best Practices:** Follow Manim best practices, including using `VoiceoverScene`, `KokoroService`, common Manim objects, animations, relative positioning, and predefined colors.
 
-        Hyper-Specific Adherence to Chunks (THE LAW & NARRATIVE COHERENCE):
+    You MUST generate the Python code in the following format (from <CODE> to </CODE>):
+    <CODE>
 
-        Translate every single step described in the chunks sequentially into Python code.
 
-        CRITICAL: You MUST use the exact Manim Mobjects and methods mentioned (e.g., if ParametricFunction is mentioned, do not use FunctionGraph instead).
-
-        Strict rules (must obey):
-
-        1. Absolutely no LaTeX
-        Forbidden tokens: MathTex, MathText, Tex, TexMobject, MathJax, \(, \), \[ , \], $, rac, \pi, 	heta, \mu, \sigma, ec, \sqrt, \lim, \sum. If the user writes a formula (like a^2 + b^2 = c^2), convert it to plain text or Unicode: use Text("a² + b² = c²"). Never produce TeX code.
-
-        2. Never generate calls that use TeX for axis tick labels
-
-        Do not call axes.add_coordinates() or any variant of it. The default tick-label behavior internally relies on TeX and will crash the environment. Always create tick labels manually using plain text objects. Allowed safe alternatives (choose one):
-
-        a. Manual numeric labels with Text
-        Create tick labels in a loop using Text(str(value)) or DecimalNumber(value, include_sign=False, num_decimal_places=..., group_with_commas=False) — but only if you are sure it does not rely on TeX.
-        Example:
-        ticks = [-3, -2, -1, 0, 1, 2, 3]
-        tick_labels = VGroup(*[
-            Text(str(t), font_size=24).next_to(axes.coords_to_point(t, 0), DOWN, buff=0.1)
-            for t in ticks
-        ])
-        self.add(tick_labels)
-
-        b. Use add_numbers() safely
-        If you use add_numbers, you must explicitly include label_constructor=Text.
-        Example:
-        axes.x_axis.add_numbers(*range(-3, 4), label_constructor=Text, font_size=24)
-
-        c. Use Text for axis titles
-        When labeling the axes themselves, use axes.get_axis_label() or Text() (e.g., Text("x-axis"), Text("y-axis")) and position them manually. If you are ever unsure whether a function triggers TeX, avoid it completely and use Text() instead.
-
-        3. Replace any automatic numeric labels with non-TeX constructors
-
-        Example safe pattern (preferred): create numbers manually with Text or with DecimalNumber(..., include_commas=False, num_decimal_places=...) configured to not use TeX internals. If you use DecimalNumber, pass parameters that prevent Tex-based rendering (explicitly pass label_constructor=Text when supported).
-
-        4. Lint and forbidden patterns
-
-        Before returning any code, run the following checks on the generated text (model must emulate this): reject or auto-rewrite any code containing the forbidden tokens listed above. Replace matched LaTeX fragments with Text(...) equivalent. Also ban: calls to Tex, TexTemplate, tex_to_svg_file, compile_tex, or any subprocess invocation referencing latex.
-
-        5. If converting LaTeX, be conservative and explicit
-
-        Convert \pi → pi or π (Unicode). Convert superscripts to Unicode superscripts where readable (x²) or to caret notation (x^2). Convert Greek letters to plain ASCII names when label length matters (e.g., mu, sigma) or use Unicode (μ, σ) if you prefer. Always wrap in Text("...").
-
-        6. Error-safe axis label pattern (recommended code snippets)
-
-        If you must add tick numbers, use one of these explicitly in generated code:
-        # SAFE: manual Text ticks (recommended)
-        ticks = [-3, -2, -1, 0, 1, 2, 3]
-        tick_labels = VGroup(*[
-            Text(str(t), font_size=24).next_to(axes.coords_to_point(t, 0), DOWN, buff=0.1)
-            for t in ticks
-        ])
-        self.add(tick_labels)
-
-        # SAFE: using add_numbers with a non-TeX constructor (if API supports label_constructor)
-        # (Only generate this if you are confident the runtime's add_numbers accepts label_constructor)
-        axes.x_axis.add_numbers(
-            *range(-3, 4)
-            label_constructor=Text,  # force Text, not Tex
-            font_size=24
-        )
-
-        7. Do not call axes.add_coordinates(None, None)
-
-        Do not generate axes.add_coordinates(None, None) or axes.add_coordinates(values=None, numbers=None). If using add_coordinates, always set label_constructor=Text or build tick labels manually.
-
-        8. When producing human-readable enhanced prompts or step lists
-
-        Always include a line: "No LaTeX: use Text('...') or Unicode for all labels and formulas." in the output metadata. Keep instructions short (1–10 independent actions).
-
-        9. Testing / CI guidance (recommended)
-
-        Include a quick runtime sanity-check snippet in generated boilerplate (non-blocking) that asserts no LaTeX functions are referenced. For example, before the Scene class, add a small comment and a check for forbidden tokens. If any are present, raise a clear error message describing the forbidden token and the required replacement.
-
-        Before any animation, ensure all Mobjects are correctly created, positioned, scaled, and organized (often using VGroup or Group) off-screen or in their initial state. Use helper methods like .to_edge(), .shift(), and .next_next_to() for professional placement. The goal is to maintain a clear visual narrative, where each Mobject's placement and animation contributes to the overall explanation defined by the User Prompt.
-
-        When an animation involves rearrangement or transformation (like the area of a circle example), use VGroup to manage the collection of sub-Mobjects before the animation begins.
-
-        Animation Flow, Narrative Cohesion, and Seamless Staging:
-
-        Narrative Synthesis (The Big Picture - Seamless Video): You must act as the editor, ensuring that the sequence of animations, while strictly following the chunks, forms a cohesive, professional, and easy-to-follow video explanation. The transitions between steps MUST be logical and visually seamless. This requires actively managing Mobject visibility (using FadeIn/FadeOut or Transform) and avoiding abrupt jumps.
-
-        Use self.play() for all animated visual changes. Use self.add() for static initial elements (like axes).
-
-        Utilize advanced animation grouping (e.g., Succession, LaggedStart, or AnimationGroup) when a chunk implies complex, multi-part motion or simultaneous events.
-
-        Follow the exact order of operations defined by the chunks.
-
-        Define explicit run_time values (e.g., run_time=1.5) and appropriate rate_func (e.g., rate_func=linear for constant speed, rate_func=smooth for general motion) to ensure smooth, controlled visuals.
-
-        Insert self.wait(1) after displaying key final results or formulas to ensure the viewer has sufficient time to read and understand the final state.
-
-        Robustness, Professionalism, and Error Prevention (Self-Correction):
-
-        Use Constants: ALWAYS initialize key parameters (like radius r, amplitude A, colors, or standard runtimes) as constants within the class or locally. This prevents "magic numbers" and improves maintainability.
-        Make sure the code does not have the latex as the dependency, if neccesary required, then try to approach them without having latex as the dependency.
-        Visual Composition: Ensure the final arrangement of Mobjects is well-composed, centered, and visually appealing on the screen. The resulting script must compile and run successfully without modification. '''
+    </CODE>"""
     
     structured_llm = llm.with_structured_output(output_code)
     response = structured_llm.invoke([{"role": "system", "content": system_prompt}] + state["messages"])

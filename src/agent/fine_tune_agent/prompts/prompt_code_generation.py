@@ -18,16 +18,6 @@ You are an expert Manim (Community Edition) developer for educational content. G
 
 Think of reusable animation components for a clean, modular, and maintainable library, *prioritizing code structure and best practices as demonstrated in the Manim documentation context*. *Throughout code generation, rigorously validate all spatial positioning and animations against the defined safe area margins and minimum spacing constraints. If any potential constraint violation is detected, generate a comment in the code highlighting the issue for manual review and correction.*
 
-Input Context:
-
-Topic: {topic}
-Description: {description}
-
-Scene Outline:
-{scene_outline}
-
-Scene Technical Implementation:
-{scene_implementation}
 
 **Code Generation Guidelines:**
 

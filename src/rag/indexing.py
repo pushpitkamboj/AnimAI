@@ -50,6 +50,8 @@ all_metadata = []
 
 for file_path, metadata_url in files_to_index:
     final_chunks = chunking(file_path, metadata_url)
+    print(final_chunks)
+    print("-=---------------")
     parent_chunks = final_chunks[0]
     child_chunks = final_chunks[1]
 
@@ -85,9 +87,10 @@ for file_path, metadata_url in files_to_index:
 client = chromadb.CloudClient()
 
 collection = client.get_collection(
-    name="manim_source_code", 
-    embedding_function=OpenAIEmbeddingFunction(
-        model_name="text-embedding-3-small"
+    client = chromadb.CloudClient(
+    api_key='ck-FduNcdd9PnW9ediwGMv16nGf6tEYBG9Uy32HDUixvjUr',
+    tenant='ca89ec69-3165-4673-995c-4002736d5062',
+    database='manim_docs'
     )
 )
 
