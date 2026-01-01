@@ -1,0 +1,19 @@
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to version control!
+
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+
+# API Keys and Secrets
+openai_api_key    = "sk-proj-..."
+langsmith_api_key = "lsv2_pt_..."
+langsmith_project = "manimation-dev"
+e2b_api_key       = "e2b_..."
+chroma_api_key    = "ck-..."
+chroma_tenant     = "your-tenant-id"
+chroma_database   = "manim_docs"
+account_id        = "your-account-id"
+access_key_id     = "your-access-key-id"
+secret_access_key = "your-secret-access-key"
+gemini_api_key    = "AIza..."
+redis_api_key     = "your-redis-api-key"
