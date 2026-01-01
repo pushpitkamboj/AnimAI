@@ -18,7 +18,7 @@ dependencies = [
     "pydantic>=2.12.3",
     "langchain-openai>=0.1.0",
     "openpipe>=0.0.1",
-    "e2b_code_interpreter>="0.0.10"
+    "e2b_code_interpreter>=0.0.10"
 ]
 
 
