@@ -128,18 +128,18 @@ from dotenv import load_dotenv
 load_dotenv()
 import os
 
-account_id = os.getenv("account_id")
-secret_access_key = os.getenv("secret_access_key")
-access_key_id = os.getenv("access_key_id")
+r2_account_id = os.getenv("R2_ACCOUNT_ID")
+r2_secret_access_key = os.getenv("R2_SECRET_ACCESS_KEY")
+r2_access_key_id = os.getenv("R2_ACCESS_KEY_ID")
 
 async def execute_code(state: State):
     sandbox = await AsyncSandbox.create(template='h7bsjoys6a5hlspy5gsx', timeout= 1000)
     await sandbox.files.make_dir('/home/user/bucket')
     
-    await sandbox.files.write('/root/.passwd-s3fs', f'{access_key_id}:{secret_access_key}')
+    await sandbox.files.write('/root/.passwd-s3fs', f'{r2_access_key_id}:{r2_secret_access_key}')
     await sandbox.commands.run('sudo chmod 600 /root/.passwd-s3fs')
     
-    await sandbox.commands.run(f'sudo s3fs -o url=https://{account_id}.r2.cloudflarestorage.com -o allow_other manim-videos /home/user/bucket')
+    await sandbox.commands.run(f'sudo s3fs -o url=https://{r2_account_id}.r2.cloudflarestorage.com -o allow_other manim-videos /home/user/bucket')
 
     val = await sandbox.files.write(f'/home/user/{state["scene_name"]}.py', state["code"]) #create a file scene.py inside the sandbox
     print(val)

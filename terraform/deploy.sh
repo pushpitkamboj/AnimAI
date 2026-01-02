@@ -19,6 +19,7 @@ fi
 PROJECT_ID=$1
 REGION=${2:-us-central1}
 IMAGE_NAME="animai"
+MANIM_IMAGE_NAME="manim-worker"
 REPO_NAME="animai-repo"
 
 echo -e "${YELLOW}Project ID: ${PROJECT_ID}${NC}"
@@ -51,16 +52,23 @@ else
 fi
 
 # Step 5: Build and push Docker image
-echo -e "\n${GREEN}Step 5: Building and pushing Docker image...${NC}"
+echo -e "\n${GREEN}Step 5: Building and pushing Docker images...${NC}"
 cd ..
 
 IMAGE_URL="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${IMAGE_NAME}:latest"
+MANIM_IMAGE_URL="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${MANIM_IMAGE_NAME}:latest"
 
 echo "Building image: ${IMAGE_URL}"
 docker build -t $IMAGE_URL .
 
 echo "Pushing image to Artifact Registry..."
 docker push $IMAGE_URL
+
+echo "Building manim-worker image: ${MANIM_IMAGE_URL}"
+docker build -t $MANIM_IMAGE_URL ./manim-worker
+
+echo "Pushing manim-worker image..."
+docker push $MANIM_IMAGE_URL
 
 # Step 6: Apply Terraform
 echo -e "\n${GREEN}Step 6: Applying Terraform configuration...${NC}"

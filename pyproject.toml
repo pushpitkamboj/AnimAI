@@ -18,7 +18,7 @@ dependencies = [
     "pydantic>=2.12.3",
     "langchain-openai>=0.1.0",
     "openpipe>=0.0.1",
-    "e2b_code_interpreter>=0.0.10"
+    "requests>=2.32.0"
 ]
 
 
@@ -70,7 +70,6 @@ dev = [
     "mypy>=1.13.0",
     "pytest>=8.3.5",
     "ruff>=0.8.2",
-    "e2b-code-interpreter>=2.2.0",
     "langchain>=1.0.0",
     "chromadb>=1.2.0",
     "fastapi>=0.119.0",

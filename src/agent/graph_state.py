@@ -4,7 +4,6 @@ load_dotenv()
 from typing_extensions import TypedDict
 from typing import Annotated
 from langgraph.graph.message import add_messages
-from e2b_code_interpreter import Sandbox
 from typing import List, Dict, Any
 import operator
 

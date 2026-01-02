@@ -40,12 +40,6 @@ variable "langsmith_project" {
   default     = "manimation-dev"
 }
 
-variable "e2b_api_key" {
-  description = "E2B API Key"
-  type        = string
-  sensitive   = true
-}
-
 variable "chroma_api_key" {
   description = "ChromaDB API Key"
   type        = string
@@ -63,21 +57,27 @@ variable "chroma_database" {
   default     = "manim_docs"
 }
 
-variable "account_id" {
+variable "r2_account_id" {
   description = "R2 Account ID"
   type        = string
 }
 
-variable "access_key_id" {
+variable "r2_access_key_id" {
   description = "R2 Access Key ID"
   type        = string
   sensitive   = true
 }
 
-variable "secret_access_key" {
+variable "r2_secret_access_key" {
   description = "R2 Secret Access Key"
   type        = string
   sensitive   = true
+}
+
+variable "r2_bucket" {
+  description = "R2 bucket name"
+  type        = string
+  default     = "manim-videos"
 }
 
 variable "gemini_api_key" {
