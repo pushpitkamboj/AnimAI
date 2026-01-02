@@ -1,0 +1,23 @@
+config:
+  target: "https://animai-api-mno64fns4a-uc.a.run.app"
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Load test - 10 RPS for 1 minute"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+  
+  http:
+    timeout: 300
+
+scenarios:
+  - name: "Run Animation - Draw Circle"
+    flow:
+      - post:
+          url: "/run"
+          json:
+            prompt: "draw a circle"
+          expect:
+            - statusCode: 200

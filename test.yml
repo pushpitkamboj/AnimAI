@@ -1,0 +1,46 @@
+config:
+  target: "https://animai-api-mno64fns4a-uc.a.run.app"
+  phases:
+    # Phase 1: Warm up - start slow
+    - duration: 30
+      arrivalRate: 1
+      name: "Warm up"
+    
+    # Phase 2: Ramp up gradually
+    - duration: 60
+      arrivalRate: 2
+      rampTo: 5
+      name: "Ramp up"
+    
+    # Phase 3: Sustained load
+    - duration: 120
+      arrivalRate: 5
+      name: "Sustained load"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+  
+  # Timeout settings (important for slow endpoints like LLM)
+  http:
+    timeout: 300  # 5 minutes timeout for /run endpoint
+
+  # Plugins for better reporting
+  plugins:
+    expect: {}
+
+scenarios:
+  - name: "Run Animation - Draw Circle"
+    flow:
+      - post:
+          url: "/run"
+          json:
+            prompt: "draw a circle"
+          capture:
+            - json: "$.status"
+              as: "status"
+            - json: "$.result"
+              as: "result"
+          expect:
+            - statusCode: 200
+            - contentType: application/json

@@ -1,10 +1,10 @@
 import os
 import uuid
-
+from agent.graph_state import State
 import requests
 
 
-def execute_code(state):
+def execute_code(state: State):
     request_id = str(uuid.uuid4())
 
     response = requests.post(
@@ -23,5 +23,4 @@ def execute_code(state):
     return {
         "sandbox_error": "No error",
         "video_url": data["video_url"],
-        "request_id": data["request_id"],
     }
