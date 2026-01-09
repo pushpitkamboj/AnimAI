@@ -34,24 +34,21 @@ async def execute_code_e2b(state: State):
     sandbox = await get_or_create_sandbox()
     
     scene_name = state["scene_name"]
-    quality = "480p15"  # 480p15 for -ql, 1080p60 for -qh
     
-    # Write the scene file
     await sandbox.files.write(f'/home/user/{scene_name}.py', state["code"])
     
     try:
-        # Render to LOCAL disk (fast), then copy ONLY the final .mp4 to bucket
+        # Render to LOCAL disk first (fast), then copy to bucket
         result = await sandbox.commands.run(
             f'manim -ql /home/user/{scene_name}.py && '
-            f'mkdir -p /home/user/bucket/v2_videos && '
-            f'cp /home/user/media/videos/{scene_name}/{quality}/{scene_name}.mp4 '
-            f'/home/user/bucket/v2_videos/',
+            f'cp -r /home/user/media/videos/{scene_name} /home/user/bucket/media/videos/',
             timeout=500
         )
     except CommandExitException as error:
         return {"sandbox_error": error}
     
-    public_url = f"https://pub-b215a097b7b243dc86da838a88d50339.r2.dev/v2_videos/{scene_name}.mp4"
+    quality = "480p15"
+    public_url = f"https://pub-b215a097b7b243dc86da838a88d50339.r2.dev/media/videos/{scene_name}/{quality}/{scene_name}.mp4"
 
     return {
         "sandbox_error": "No error",

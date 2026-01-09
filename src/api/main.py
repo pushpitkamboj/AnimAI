@@ -45,7 +45,7 @@ async def run_langgraph(data: InstructionInput):
     try:
         collection = client.get_collection(name="manim_cached_video_url")
         cached_result = collection.query(query_texts=[data.prompt], n_results=1)
-        # print(f"caches results from chromaDB include- {cached_result}")
+        print(f"caches results from chromaDB include- {cached_result}")
         if cached_result["distances"][0][0] <= THRESHOLD:
             print("the threshold is fine")
             return JSONResponse(
@@ -61,8 +61,8 @@ async def run_langgraph(data: InstructionInput):
             input={"prompt": data.prompt},
             config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 18}
         )
-        
-        # print("not found in cached data, now caching")
+    
+        print("not found in cached data, now caching")
         data_cached = collection.add(
             ids=str(uuid.uuid4()),
             documents=data.prompt,
