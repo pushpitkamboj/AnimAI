@@ -2,6 +2,10 @@
 from dotenv import load_dotenv
 load_dotenv()
 import os
+import sys
+
+# Add the src directory to Python path to resolve the correct agent module
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import FastAPI
 app = FastAPI()
@@ -39,18 +43,18 @@ class InstructionInput(BaseModel):
 async def run_langgraph(data: InstructionInput):
 
     try:
-        collection = client.get_collection(name="manim_cached_video_url")
-        cached_result = collection.query(query_texts=[data.prompt], n_results=1)
-        print(f"caches results from chromaDB include- {cached_result}")
-        if cached_result["distances"][0][0] <= THRESHOLD:
-            print("the threshold is fine")
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "result": cached_result["metadatas"][0][0]["video_url"],
-                    "status": "success",
-                }
-            )
+        # collection = client.get_collection(name="manim_cached_video_url")
+        # cached_result = collection.query(query_texts=[data.prompt], n_results=1)
+        # print(f"caches results from chromaDB include- {cached_result}")
+        # if cached_result["distances"][0][0] <= THRESHOLD:
+        #     print("the threshold is fine")
+        #     return JSONResponse(
+        #         status_code=200,
+        #         content={
+        #             "result": cached_result["metadatas"][0][0]["video_url"],
+        #             "status": "success",
+        #         }
+        #     )
             
         thread_id = str(uuid.uuid4())
         result = await workflow_app.ainvoke(
@@ -58,12 +62,12 @@ async def run_langgraph(data: InstructionInput):
             config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 18}
         )
         
-        print("not found in cached data, now caching")
-        data_cached = collection.add(
-            ids=str(uuid.uuid4()),
-            documents=data.prompt,
-            metadatas=[{"video_url": result["video_url"]}],
-        )
+        # print("not found in cached data, now caching")
+        # data_cached = collection.add(
+        #     ids=str(uuid.uuid4()),
+        #     documents=data.prompt,
+        #     metadatas=[{"video_url": result["video_url"]}],
+        # )
 
         return JSONResponse(
             status_code=200, 

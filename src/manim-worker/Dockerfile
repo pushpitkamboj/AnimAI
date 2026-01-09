@@ -18,15 +18,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     gcc \
     build-essential \
+    s3fs \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir \
     manim \
     fastapi \
     uvicorn \
-    boto3
-
-WORKDIR /app
-COPY app.py .
-
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]
