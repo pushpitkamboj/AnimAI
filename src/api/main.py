@@ -43,18 +43,18 @@ class InstructionInput(BaseModel):
 async def run_langgraph(data: InstructionInput):
 
     try:
-        # collection = client.get_collection(name="manim_cached_video_url")
-        # cached_result = collection.query(query_texts=[data.prompt], n_results=1)
+        collection = client.get_collection(name="manim_cached_video_url")
+        cached_result = collection.query(query_texts=[data.prompt], n_results=1)
         # print(f"caches results from chromaDB include- {cached_result}")
-        # if cached_result["distances"][0][0] <= THRESHOLD:
-        #     print("the threshold is fine")
-        #     return JSONResponse(
-        #         status_code=200,
-        #         content={
-        #             "result": cached_result["metadatas"][0][0]["video_url"],
-        #             "status": "success",
-        #         }
-        #     )
+        if cached_result["distances"][0][0] <= THRESHOLD:
+            print("the threshold is fine")
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "result": cached_result["metadatas"][0][0]["video_url"],
+                    "status": "success",
+                }
+            )
             
         thread_id = str(uuid.uuid4())
         result = await workflow_app.ainvoke(
@@ -63,11 +63,11 @@ async def run_langgraph(data: InstructionInput):
         )
         
         # print("not found in cached data, now caching")
-        # data_cached = collection.add(
-        #     ids=str(uuid.uuid4()),
-        #     documents=data.prompt,
-        #     metadatas=[{"video_url": result["video_url"]}],
-        # )
+        data_cached = collection.add(
+            ids=str(uuid.uuid4()),
+            documents=data.prompt,
+            metadatas=[{"video_url": result["video_url"]}],
+        )
 
         return JSONResponse(
             status_code=200, 
