@@ -6,3 +6,4 @@ chromadb
 langchain
 langchain-openai
 requests
+e2b
