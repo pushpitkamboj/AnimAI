@@ -75,7 +75,7 @@ async def run_langgraph(data: InstructionInput):
             logger.info(f"Non-animation response generated")
             return {
                 "result": result["non_animation_reply"],
-                "status": "success"
+                "status": "non_animation"
             }
             
         logger.info("Cache miss - caching new video URL")
