@@ -3,6 +3,14 @@ from dotenv import load_dotenv
 load_dotenv()
 import os
 import sys
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 # Add the src directory to Python path to resolve the correct agent module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -34,20 +42,21 @@ client = chromadb.CloudClient(
     api_key=api_key, database=database, tenant=tenant
 )
 
-THRESHOLD = 1 - 0.3 #BECAUSE WE ARE COMPARING THE DISTANCES
+THRESHOLD = 1 - 0.2 #BECAUSE WE ARE COMPARING THE DISTANCES
 
 class InstructionInput(BaseModel):
     prompt: str
 
 @app.post("/run")
 async def run_langgraph(data: InstructionInput):
-
+    logger.info(f"Received request with prompt: {data.prompt}")
+    
     try:
         collection = client.get_collection(name="manim_cached_video_url")
         cached_result = collection.query(query_texts=[data.prompt], n_results=1)
-        print(f"caches results from chromaDB include- {cached_result}")
+        logger.debug(f'Cached results from ChromaDB: {cached_result["metadatas"][0][0]["video_url"]}')
         if cached_result["distances"][0][0] <= THRESHOLD:
-            print("the threshold is fine")
+            logger.info("Cache hit - returning cached video URL")
             return JSONResponse(
                 status_code=200,
                 content={
@@ -61,14 +70,22 @@ async def run_langgraph(data: InstructionInput):
             input={"prompt": data.prompt},
             config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 18}
         )
-    
-        print("not found in cached data, now caching")
+        
+        if result["animation"] == False:
+            logger.info(f"Non-animation response generated")
+            return {
+                "result": result["non_animation_reply"],
+                "status": "success"
+            }
+            
+        logger.info("Cache miss - caching new video URL")
         data_cached = collection.add(
             ids=str(uuid.uuid4()),
             documents=data.prompt,
             metadatas=[{"video_url": result["video_url"]}],
         )
 
+        logger.info(f"Response: video_url={result['video_url']}")
         return JSONResponse(
             status_code=200, 
             content={
@@ -99,4 +116,5 @@ async def run_langgraph(data: InstructionInput):
 
 @app.get("/health")
 def health():
+    logger.info("okay")
     return {"message": "ok"}

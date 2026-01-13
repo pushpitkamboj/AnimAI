@@ -14,6 +14,8 @@ llm = init_chat_model("openai:gpt-4.1")
 class output_format(BaseModel):
     """animation: true/false, if the user prompt is to be answered by animation then true else false
     non_animation_reply: prompt reply if animation is false, else leave it empty
+    make sure that you keep everything as animation: true and only very wierd userprompts should be said as false, such as hi, hello, how are u, whats ur name etc. Reply these questions accordignly and also state to ask any animation question such as draw a circle
+    prompts such as 2 circles, 1circle and a triangle etc all come under animation.
     """
     animation: bool
     non_animation_reply: str | None = None
@@ -51,6 +53,7 @@ Abstract, conceptual, or poetic prompts:
 Requests with no clear technical or educational context.
 Examples:
 visualize love, draw emotions, show chaos, illustrate peace, animate freedom
+NOTE: its not necessary that user writes verbs like draw,visualize. If he even write a circle and square it should be understandable and response should be animation: True
 Response behavior:
 Inform the user that the input is outside the system’s intended scope and suggest using clear scientific or technical concepts instead.
 
