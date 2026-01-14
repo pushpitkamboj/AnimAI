@@ -35,11 +35,11 @@ ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "").split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["POST", "GET"],
-    allow_headers=["Content-Type"],
 )
+
 print(f"allowed origins are: {ALLOWED_ORIGINS}")
 api_key = os.getenv("CHROMA_API_KEY")
 database = os.getenv("CHROMA_DATABASE")
