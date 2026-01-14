@@ -4,6 +4,17 @@ load_dotenv()
 import os
 import sys
 import logging
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+import chromadb
+from pydantic import BaseModel
+from agent.graph import workflow_app
+from langgraph.errors import GraphRecursionError
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+import uuid 
+from fastapi import FastAPI, Request
 
 # Configure logging
 logging.basicConfig(
@@ -15,23 +26,19 @@ logger = logging.getLogger(__name__)
 # Add the src directory to Python path to resolve the correct agent module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from fastapi import FastAPI
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-import chromadb
-from pydantic import BaseModel
-from agent.graph import workflow_app
-from langgraph.errors import GraphRecursionError
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-import uuid 
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "").split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or specific frontend URL
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["POST", "GET"],
+    allow_headers=["Content-Type"],
 )
 
 api_key = os.getenv("CHROMA_API_KEY")
@@ -48,7 +55,8 @@ class InstructionInput(BaseModel):
     prompt: str
 
 @app.post("/run")
-async def run_langgraph(data: InstructionInput):
+@limiter.limit("10/minute")
+async def run_langgraph(request: Request, data: InstructionInput):
     logger.info(f"Received request with prompt: {data.prompt}")
     
     try:
