@@ -40,7 +40,7 @@ app.add_middleware(
     allow_methods=["POST", "GET"],
     allow_headers=["Content-Type"],
 )
-
+print(f"allowed origins are: {ALLOWED_ORIGINS}")
 api_key = os.getenv("CHROMA_API_KEY")
 database = os.getenv("CHROMA_DATABASE")
 tenant = os.getenv("CHROMA_TENANT")
