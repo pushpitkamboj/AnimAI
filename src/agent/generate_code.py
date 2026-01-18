@@ -7,6 +7,15 @@ from pydantic import BaseModel
 from agent.graph_state import State
 
 llm = init_chat_model("openai:gpt-4.1")
+# llm = init_chat_model("google_genai:gemini-2.5-flash-lite")
+from os import getenv
+
+# llm = init_chat_model(
+#     model="openai/gpt-4.1",
+#     model_provider="openai",
+#     base_url="https://openrouter.ai/api/v1",
+#     api_key=getenv("OPENROUTER_API_KEY"),
+# )
 
 class output_code(BaseModel):
     code: str
@@ -63,10 +72,30 @@ def generate_code(state: State):
     *   **Text Elements:** Create text elements using `Tex` or `MathTex` for formulas and explanations, styling them with `color` and `font_size` as needed.
     *   **Manim Best Practices:** Follow Manim best practices, including using `VoiceoverScene`, `KokoroService`, common Manim objects, animations, relative positioning, and predefined colors.
 
+    **VOICE**
+    *   **Use GTTS for voice with the language what the user has mentioned is his user prompt => {state["prompt"]}
     You MUST generate the Python code in the following format (from <CODE> to </CODE>):
     <CODE>
+    class GTTSExample(VoiceoverScene):
+    def construct(self):
+        self.set_speech_service(GTTSService(lang={state["language"]}, tld="com"))
 
+        circle = Circle()
+        square = Square().shift(2 * RIGHT)
 
+        with self.voiceover(text="This circle is drawn as I speak.") as tracker:
+            self.play(Create(circle), run_time=tracker.duration)
+
+        with self.voiceover(text="Let's shift it to the left 2 units.") as tracker:
+            self.play(circle.animate.shift(2 * LEFT), run_time=tracker.duration)
+
+        with self.voiceover(text="Now, let's transform it into a square.") as tracker:
+            self.play(Transform(circle, square), run_time=tracker.duration)
+
+        with self.voiceover(text="Thank you for watching."):
+            self.play(Uncreate(circle))
+
+        self.wait()
     </CODE>"""
     
     structured_llm = llm.with_structured_output(output_code)

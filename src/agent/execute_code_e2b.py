@@ -24,7 +24,7 @@ async def get_or_create_sandbox(force_new=False):
                 pass  # Ignore errors when closing dead sandbox
         
         _sandbox_instance = await AsyncSandbox.create(
-            template='2t56femtmrz3jfpfplcl',
+            template='6einozfhnzfwrnteail2',
             timeout=300  # Keep alive for 5 minutes
         )
         # One-time setup
@@ -51,7 +51,7 @@ async def execute_code_e2b(state: State):
             try:
                 # Render to LOCAL disk first (fast), then copy to bucket
                 result = await sandbox.commands.run(
-                    f'manim -ql /home/user/{scene_name}.py && '
+                    f'manim -ql /home/user/{scene_name}.py --disable_caching && '
                     f'cp -r /home/user/media/videos/{scene_name} /home/user/bucket/media/videos/',
                     timeout=500
                 )

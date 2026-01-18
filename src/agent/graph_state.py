@@ -18,3 +18,4 @@ class State(TypedDict):
     scene_name: str
     animation: bool
     non_animation_reply: str
+    language: str

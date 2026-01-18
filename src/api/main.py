@@ -53,6 +53,7 @@ THRESHOLD = 1 - 0.2 #BECAUSE WE ARE COMPARING THE DISTANCES
 
 class InstructionInput(BaseModel):
     prompt: str
+    language: str = "en"
 
 @app.post("/run")
 @limiter.limit("10/minute")
@@ -75,7 +76,7 @@ async def run_langgraph(request: Request, data: InstructionInput):
             
         thread_id = str(uuid.uuid4())
         result = await workflow_app.ainvoke(
-            input={"prompt": data.prompt},
+            input={"prompt": data.prompt, "language": data.language},
             config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 18}
         )
         

@@ -8,3 +8,4 @@ langchain-openai
 requests
 e2b
 slowapi
+langchain[google-genai]
