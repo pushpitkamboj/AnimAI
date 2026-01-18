@@ -73,7 +73,7 @@ def generate_code(state: State):
     *   **Manim Best Practices:** Follow Manim best practices, including using `VoiceoverScene`, `KokoroService`, common Manim objects, animations, relative positioning, and predefined colors.
 
     **VOICE**
-    *   **Use GTTS for voice with the language what the user has mentioned is his user prompt => {state["prompt"]}
+    *   **Use GTTS for voice with the language what the user has mentioned is his user prompt => {state["language"]}
     You MUST generate the Python code in the following format (from <CODE> to </CODE>):
     <CODE>
     class GTTSExample(VoiceoverScene):
