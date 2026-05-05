@@ -130,7 +130,7 @@ def _get_cache_collection():
         logger.info("Chroma cache disabled because the client is unavailable")
         return None
 
-    return client.get_or_create_collection(name="manim_cached_video_url")
+    return client.get_or_create_collection(name="manim_cached_video_url_v2")
 
 
 def _get_cached_video_url(prompt: str) -> str | None:
