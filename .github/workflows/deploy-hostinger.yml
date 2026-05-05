@@ -9,7 +9,19 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: animai_secrets
     steps:
+      - name: Check required deployment config
+        run: |
+          if [ -z "${{ secrets.HOSTINGER_API_KEY }}" ]; then
+            echo "HOSTINGER_API_KEY is missing from the active GitHub environment or repo secrets."
+            exit 1
+          fi
+          if [ -z "${{ vars.HOSTINGER_VM_ID }}" ]; then
+            echo "HOSTINGER_VM_ID is missing from repo/environment variables."
+            exit 1
+          fi
+
       - uses: actions/checkout@v5
 
       - name: Deploy to Hostinger
