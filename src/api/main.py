@@ -13,7 +13,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from chroma_utils import chroma_query_enabled, get_chroma_cloud_client, get_chroma_embedding_function
+from chroma_utils import chroma_query_enabled, embed_texts, get_chroma_cloud_client
 
 try:
     import httpx
@@ -126,15 +126,11 @@ def _get_cache_collection():
         return None
 
     client = get_chroma_cloud_client()
-    embedding_function = get_chroma_embedding_function()
-    if client is None or embedding_function is None:
-        logger.info("Chroma cache disabled because the client or embedding function is unavailable")
+    if client is None:
+        logger.info("Chroma cache disabled because the client is unavailable")
         return None
 
-    return client.get_or_create_collection(
-        name="manim_cached_video_url",
-        embedding_function=embedding_function,
-    )
+    return client.get_or_create_collection(name="manim_cached_video_url")
 
 
 def _get_cached_video_url(prompt: str) -> str | None:
@@ -143,7 +139,11 @@ def _get_cached_video_url(prompt: str) -> str | None:
         if collection is None:
             return None
 
-        result = collection.query(query_texts=[prompt], n_results=1)
+        query_embeddings = embed_texts([prompt])
+        if not query_embeddings:
+            return None
+
+        result = collection.query(query_embeddings=query_embeddings, n_results=1)
         distances = result.get("distances", [[]])
         metadatas = result.get("metadatas", [[]])
         if not distances or not metadatas:
@@ -164,8 +164,12 @@ def _cache_video_url(prompt: str, video_url: str) -> None:
         collection = _get_cache_collection()
         if collection is None:
             return
+        embeddings = embed_texts([prompt])
+        if not embeddings:
+            return
         collection.add(
             ids=[str(uuid4())],
+            embeddings=embeddings,
             documents=[prompt],
             metadatas=[{"video_url": video_url}],
         )

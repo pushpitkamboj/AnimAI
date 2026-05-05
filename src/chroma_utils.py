@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from functools import lru_cache
 
 
 def _chroma_openai_api_key_env_var() -> str | None:
@@ -16,6 +17,7 @@ def chroma_query_enabled() -> bool:
     return all(os.getenv(name) for name in required) and _chroma_openai_api_key_env_var() is not None
 
 
+@lru_cache(maxsize=1)
 def get_chroma_embedding_function():
     api_key_env_var = _chroma_openai_api_key_env_var()
     if api_key_env_var is None:
@@ -30,6 +32,13 @@ def get_chroma_embedding_function():
         api_key_env_var=api_key_env_var,
         model_name=os.getenv("CHROMA_OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
     )
+
+
+def embed_texts(texts: list[str]) -> list:
+    embedding_function = get_chroma_embedding_function()
+    if embedding_function is None:
+        return []
+    return embedding_function(texts)
 
 
 def get_chroma_cloud_client():

@@ -6,7 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-from chroma_utils import chroma_query_enabled, get_chroma_cloud_client, get_chroma_embedding_function
+from chroma_utils import chroma_query_enabled, embed_texts, get_chroma_cloud_client
 from rag.chunks import chunking
 from rag.example_chunks import extract_example_chunks
 from rag.query_builder import build_shot_queries
@@ -187,16 +187,15 @@ def _maybe_dense_search(query: str, limit: int = 4) -> list[dict[str, Any]]:
         return []
 
     client = get_chroma_cloud_client()
-    embedding_function = get_chroma_embedding_function()
-    if client is None or embedding_function is None:
+    if client is None:
         return []
 
     try:
-        collection = client.get_collection(
-            name=API_COLLECTION_NAME,
-            embedding_function=embedding_function,
-        )
-        result = collection.query(query_texts=[query], n_results=limit)
+        query_embeddings = embed_texts([query])
+        if not query_embeddings:
+            return []
+        collection = client.get_collection(name=API_COLLECTION_NAME)
+        result = collection.query(query_embeddings=query_embeddings, n_results=limit)
     except Exception:
         return []
 
