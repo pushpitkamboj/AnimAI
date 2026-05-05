@@ -3,7 +3,7 @@
 # ============================================
 
 .PHONY: all format lint test tests test_watch integration_tests docker_tests help extended_tests
-.PHONY: install dev docker-build docker-run docker-stop deploy logs health clean
+.PHONY: install dev worker-dev compose-up compose-down docker-build docker-run docker-stop deploy logs health clean
 
 # Configuration
 PROJECT_ID := anim-482714
@@ -35,6 +35,18 @@ install:
 dev:
 	@echo "$(GREEN)Starting local development server...$(NC)"
 	PYTHONPATH=src uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+
+worker-dev:
+	@echo "$(GREEN)Starting manim-worker locally...$(NC)"
+	uvicorn app:app --app-dir manim-worker --reload --host 0.0.0.0 --port 8080
+
+compose-up:
+	@echo "$(GREEN)Starting API + manim-worker with Docker Compose...$(NC)"
+	docker compose up --build
+
+compose-down:
+	@echo "$(YELLOW)Stopping Docker Compose stack...$(NC)"
+	docker compose down
 
 dev-port:
 	@echo "$(GREEN)Starting on port $(PORT)...$(NC)"
@@ -244,6 +256,8 @@ help:
 	@echo '$(YELLOW)Local Development:$(NC)'
 	@echo '  make install       - Install Python dependencies'
 	@echo '  make dev           - Run API locally with hot-reload'
+	@echo '  make worker-dev    - Run manim-worker locally with hot-reload'
+	@echo '  make compose-up    - Run API and worker together via Docker Compose'
 	@echo ''
 	@echo '$(YELLOW)Docker:$(NC)'
 	@echo '  make docker-build  - Build Docker image'
@@ -281,4 +295,3 @@ help:
 	@echo '$(YELLOW)Cleanup:$(NC)'
 	@echo '  make clean         - Clean local artifacts'
 	@echo '  make clean-all     - Clean everything including Docker'
-

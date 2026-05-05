@@ -6,6 +6,10 @@ chromadb
 langchain
 langchain-openai
 requests
-e2b
 slowapi
 langchain[google-genai]
+boto3
+beautifulsoup4
+duckduckgo-search
+rank-bm25
+langfuse

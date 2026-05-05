@@ -1,7 +1,7 @@
 [project]
 name = "agent"
 version = "0.0.1"
-description = "Starter template for making a new agent LangGraph."
+description = "AnimAI backend for turning prompts into Manim videos."
 authors = [
     { name = "William Fu-Hinthorn", email = "13333726+hinthornw@users.noreply.github.com" },
 ]
@@ -11,14 +11,18 @@ requires-python = ">=3.10"
 dependencies = [
     "langgraph>=1.0.0",
     "python-dotenv>=1.0.1",
-    "novita_sandbox>=0.1.0",
     "langchain>=1.0.0",
     "chromadb>=1.2.0",
     "fastapi>=0.119.0",
     "pydantic>=2.12.3",
     "langchain-openai>=0.1.0",
-    "openpipe>=0.0.1",
-    "requests>=2.32.0"
+    "requests>=2.32.0",
+    "slowapi>=0.1.9",
+    "boto3>=1.43.2",
+    "beautifulsoup4>=4.12.3",
+    "duckduckgo-search>=8.1.1",
+    "rank-bm25>=0.2.2",
+    "langfuse>=4.5.1",
 ]
 
 

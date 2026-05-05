@@ -1,0 +1,61 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      MANIM_WORKER_URL: http://manim-worker:8080
+      SEMANTIC_CACHE_ENABLED: ${SEMANTIC_CACHE_ENABLED:-false}
+      CHROMA_OPENAI_API_KEY: ${CHROMA_OPENAI_API_KEY:-}
+      CHROMA_OPENAI_EMBEDDING_MODEL: ${CHROMA_OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      CHROMA_API_KEY: ${CHROMA_API_KEY:-}
+      CHROMA_HOST: ${CHROMA_HOST:-api.trychroma.com}
+      CHROMA_TENANT: ${CHROMA_TENANT:-}
+      CHROMA_DATABASE: ${CHROMA_DATABASE:-}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
+      LANGFUSE_HOST: ${LANGFUSE_HOST:-}
+      LANGFUSE_TIMEOUT: ${LANGFUSE_TIMEOUT:-15}
+      LANGFUSE_FLUSH_AT: ${LANGFUSE_FLUSH_AT:-64}
+      LANGFUSE_FLUSH_INTERVAL: ${LANGFUSE_FLUSH_INTERVAL:-2}
+      LANGFUSE_TRACING_ENVIRONMENT: ${LANGFUSE_TRACING_ENVIRONMENT:-production}
+      LANGFUSE_AUTH_CHECK_ON_STARTUP: ${LANGFUSE_AUTH_CHECK_ON_STARTUP:-false}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - manim-worker
+
+  manim-worker:
+    build:
+      context: .
+      dockerfile: manim-worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-}
+      R2_BUCKET: ${R2_BUCKET:-}
+      R2_PUBLIC_BASE_URL: ${R2_PUBLIC_BASE_URL:-}
+      SKIP_UPLOAD: ${SKIP_UPLOAD:-0}
+      PUBLIC_MEDIA_BASE_URL: ${PUBLIC_MEDIA_BASE_URL:-}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-}
+      LANGFUSE_HOST: ${LANGFUSE_HOST:-}
+      LANGFUSE_TIMEOUT: ${LANGFUSE_TIMEOUT:-15}
+      LANGFUSE_FLUSH_AT: ${LANGFUSE_FLUSH_AT:-64}
+      LANGFUSE_FLUSH_INTERVAL: ${LANGFUSE_FLUSH_INTERVAL:-2}
+      LANGFUSE_TRACING_ENVIRONMENT: ${LANGFUSE_TRACING_ENVIRONMENT:-production}
+      MANIM_RENDER_TIMEOUT_SECONDS: ${MANIM_RENDER_TIMEOUT_SECONDS:-900}
+      MANIM_QUALITY_FLAG: ${MANIM_QUALITY_FLAG:--ql}
+      KEEP_RENDER_ARTIFACTS: ${KEEP_RENDER_ARTIFACTS:-0}
+    expose:
+      - "8080"
+    volumes:
+      - worker-media:/tmp/manim-worker
+
+volumes:
+  worker-media:

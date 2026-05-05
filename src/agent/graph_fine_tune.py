@@ -1,3 +1,9 @@
+"""Legacy experimental fine-tune graph.
+
+This workflow is kept for reference only and is not part of the active
+production /run pipeline.
+"""
+
 from agent.generate_code_fine_tune import generate_code_fine_tune
 from agent.execute_code import execute_code
 from langgraph.graph import StateGraph, START, END

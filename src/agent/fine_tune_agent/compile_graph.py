@@ -1,3 +1,9 @@
+"""Legacy experimental multi-stage fine-tune graph.
+
+This graph is preserved for reference only and is not part of the active
+API -> worker execution flow.
+"""
+
 from langgraph.graph import StateGraph, START, END
 from agent.fine_tune_agent.nodes.scene_plan import scene_plan_node
 from agent.fine_tune_agent.nodes.teaching_framework import teaching_framework_node

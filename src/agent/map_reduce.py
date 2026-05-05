@@ -1,59 +1,41 @@
-from dotenv import load_dotenv
-load_dotenv()
+from __future__ import annotations
 
-import os
-from typing import Any, Dict
-# import numpy as np
-from agent.graph_state import State
-import chromadb
-from langchain_core.messages import AIMessage
+from typing_extensions import TypedDict
+
 from langgraph.types import Send
 
-api_key = os.getenv("CHROMA_API_KEY")
-database = os.getenv("CHROMA_DATABASE")
-tenant = os.getenv("CHROMA_TENANT")
-
-client = chromadb.CloudClient(
-    api_key=api_key, database=database, tenant=tenant
-)
+from agent.graph_state import State
+from rag.retriever import retrieve_shot_evidence
 
 
-def continue_instructions(state: State):
-    # creates one job per instruction — your existing approach
-    return [Send("get_chunks", {"instruction": instr}) for instr in state["instructions"]] #send to get_chunks for each instruction
+class ShotRetrievalState(TypedDict):
+    shot: dict
+    scene_spec: dict
+    topic_brief: dict
+    prompt: str
 
 
-def get_chunks(state: State):
-    """
-    Called for a single instruction job. Expects state to contain "instruction".
-    Queries Chroma for top-2 matches and appends a mapping into state["mapped_chunks"].
-    """
-    instruction = state.get("instruction")
-    if instruction is None:
-        raise ValueError("get_chunks expects state['instruction'] to be present")
+def continue_shots(state: State) -> list[Send]:
+    return [
+        Send(
+            "get_chunks",
+            {
+                "shot": shot,
+                "scene_spec": state["scene_spec"],
+                "topic_brief": state["topic_brief"],
+                "prompt": state["prompt"],
+            },
+        )
+        for shot in state["shot_plan"]
+    ]
 
-    collection = client.get_collection(name="manim_source_code")
-    results = collection.query(query_texts=[instruction], n_results=1) 
 
-    ids = results.get("ids", [[]])[0]
-    documents = results.get("documents", [[]])[0]
-    metadatas = results.get("metadatas", [[]])[0]
-
-    chunks = []
-    for i in range(len(documents)): #for all chunks of an instruction
-        chunk = {
-            "id": ids[i] if i < len(ids) else None,
-            "text": documents[i],
-            "metadata": metadatas[i] if i < len(metadatas) else {},
-        }
-        chunks.append(chunk)
-    # print(chunks)
-    # print(instruction)
-
-    # store mapped result keyed by the instruction (append to mapped_chunks list)
-    mapped = {"instruction": instruction, "chunks": chunks}
-    # Return state and the chunks for downstream processing
-    return {
-        "mapped_chunks": [mapped]
-    }
-
+def get_chunks(state: ShotRetrievalState) -> dict:
+    shot = state["shot"]
+    evidence = retrieve_shot_evidence(
+        shot=shot,
+        scene_spec=state["scene_spec"],
+        topic_brief=state["topic_brief"],
+        prompt=state["prompt"],
+    )
+    return {"retrieval_evidence": [evidence]}

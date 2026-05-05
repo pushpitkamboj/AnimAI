@@ -1,4 +1,3 @@
-<!-- Top-level decorative header and architecture image -->
 <p align="center">
   <a href="https://github.com/pushpitkamboj/AnimAI">
     <img src="https://raw.githubusercontent.com/pushpitkamboj/AnimAI/main/arch_image.png" alt="Architecture" width="900"/>
@@ -12,196 +11,117 @@
   <a href="https://github.com/pushpitkamboj/AnimAI/blob/main/LICENSE"><img src="https://img.shields.io/github/license/pushpitkamboj/AnimAI" alt="license"/></a>
 </p>
 
-# AnimAI — manim-app
+# AnimAI
 
-An opinionated Manim-based animation generator that converts natural language prompts into Manim scenes using LangChain/LangGraph agents, a RAG index and optional HTTP API.
+AnimAI converts natural-language prompts into Manim videos.
 
-> Beautiful, reproducible animations—driven by LLMs + retrieval.
+The active backend is a small server-side pipeline:
 
-## Table of contents
+`POST /run` -> `src/api/main.py` -> `src/agent/graph.py` -> `src/agent/execute_code.py` -> `manim-worker/app.py`
 
-- [Project summary](#project-summary)
-- [Architecture](#architecture)
-- [Technologies used](#technologies-used)
-- [Deployment options](#deployment-options)
-  - [1) Langsmith / LangGraph](#1-deploy-through-langsmith--langgraph)
-  - [2) Self-host (FastAPI)](#2-self-host-fastapi)
-- [Quickstart (local)](#quickstart-local)
-- [Codebase overview](#codebase-overview)
-- [Examples](#examples)
-- [Troubleshooting & tips](#troubleshooting--tips)
-- [Contributing](#contributing)
-- [License](#license)
+The API plans and generates Manim code, submits it to a dedicated render worker, polls every 5 seconds for job status, and returns a public video URL on success.
 
-## Project summary
+## Current Architecture
 
-The app translates user prompts into Manim commands via an LLM-backed agent and RAG index, then renders animations with Manim. It is designed to be run as a local service (FastAPI) or deployed via LangGraph/Langsmith flows.
+- `src/api/main.py`
+  FastAPI entrypoint with language normalization, semantic cache lookup, Langfuse tracing, and the `/run` + `/health` endpoints.
+- `src/agent/graph.py`
+  Active LangGraph workflow for prompt classification, grounding, planning, retrieval, generation, execution, and recovery.
+- `src/agent/execute_code.py`
+  Submit-and-poll client for the render worker.
+- `manim-worker/app.py`
+  Dedicated Manim execution service with `/jobs` and `/jobs/{job_id}`.
+- `src/rag/`
+  Retrieval stack and supporting chunks for Manim-aware grounding.
+- `src/manim_docs/`
+  Manim reference material used for retrieval/indexing.
 
-## Architecture
+## Legacy Code
 
-- Agent layer — LangChain / LangGraph agent composes, enhances and executes prompts. See `src/agent/`.
-- Retrieval (RAG) — document chunking and vector indexing in `src/rag/` to make Manim commands and docs searchable.
-- API — optional FastAPI endpoint at `src/api/main.py` (commented by default; see Self-host section).
-- Renderer — Manim scenes and helpers live under `src/manim_docs/` and are used to produce final video assets.
-- Storage / delivery — produced videos are uploaded (example: Cloudflare R2) and returned as URLs by the API.
+The repository still keeps the fine-tune graph experiments under:
 
-High-level flow
-1. User sends a natural language prompt to the agent.
-2. Agent enhances the prompt and issues RAG queries to the vector store.
-3. Agent produces a Manim script or workflow; rendering is performed by a worker running Manim.
-4. Rendered video is stored and the API returns a shareable URL or status.
+- `src/agent/graph_fine_tune.py`
+- `src/agent/generate_code_fine_tune.py`
+- `src/agent/regenerate_code_fine_tune.py`
+- `src/agent/fine_tune_agent/`
 
-## NOTE- the code written in fe folder is not source of truth, the production frontend code is here - https://github.com/AnshBansalOfficial/v0-anim-ai
-## Technologies used
+These files are legacy experimental pipelines. They are not part of the active production request flow and are kept only as reference material.
 
-- Python 3.10+
-- Manim library (rendering)
-- LangChain / langchain_core (agent logic)
-- LangGraph (workflow orchestration)
-- Langsmith (for tracing & deployment)
-- FastAPI (optional REST endpoint)
-- Chroma or other vector store (RAG)
-- Cloudflare R2
-- e2b code interpreter for sandboxing the code execution
+## Frontend Note
 
-Key files: `pyproject.toml`, `src/agent/`, `src/rag/`, `src/api/main.py`.
+The code in `src/fe/` is not the source of truth for production frontend work.
 
-## Deployment options
+Production frontend repo:
+`https://github.com/AnshBansalOfficial/v0-anim-ai`
 
-### 1) Deploy through Langsmith / LangGraph
+## Local Development
 
-- Use LangGraph to publish the workflow/graph; Langsmith can be used for tracing and CI-based deployments.
-- Steps (high level):
-  1. Get `LANGSMITH_API_KEY` and set it in your CI or environment.
-  2. Confirm `langgraph.json` or your graph module is up to date.
-  3. Use platform-specific CLI/CI to publish the graph (CI should set `LANGSMITH_API_KEY` as secret and may set `LANGSMITH_TRACING=true`).
+### Docker
 
-See `langraph/project_langraph_platform/pyproject.toml` for compatible package versions used in examples.
+```bash
+docker compose up --build
+```
 
-### 2) Self-host (FastAPI)
+This starts:
 
-This project contains a commented FastAPI entrypoint at `src/api/main.py` (marked "MIGRATED TO LANGGRAPH API FOR DEPLOYEMENT"). To enable self-hosting:
+- API on `http://localhost:8000`
+- Manim worker on `http://localhost:8080`
 
-1. Open `manimation/manim-app/src/api/main.py` and uncomment the FastAPI app code. The endpoints provided are `/run` (POST) and `/health` (GET).
-2. Ensure dependencies are installed (see Quickstart below).
-3. Run the app from the `manim-app` root:
+### Direct API run
 
 ```bash
 python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-The `/run` endpoint expects `{ "prompt": "..." }` and will return a `result` (a `video_url` on success) and `status`.
-
-Production notes: ensure `PYTHONPATH` includes the project root or use package-style imports. Replace permissive CORS with specific origins. Consider running the renderer as a background worker or container for heavier workloads.
-
-## Quickstart (local)
-
-1. Clone and change directory
+If you run the API directly, you should also run the worker separately:
 
 ```bash
-git clone https://github.com/pushpitkamboj/AnimAI
-cd manimation/manim-app
+uvicorn app:app --app-dir manim-worker --host 0.0.0.0 --port 8080 --reload
 ```
 
-2. Create and activate a venv
+## Request Example
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+curl -X POST http://localhost:8000/run \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"2 squares rotating","language":"en"}'
 ```
 
-3. Install dependencies
+Example response:
 
-```bash
-pip install -e .
-# or: poetry install
+```json
+{"result":"https://.../scene.mp4","status":"success"}
 ```
 
-4. Environment variables (example)
+## Environment
 
-```bash
-export OPENAI_API_KEY=sk-...
-export LANGSMITH_API_KEY=lsv2_...
-export LANGSMITH_TRACING=true
-```
+Common environment variables:
 
-5. Run unit tests
+- `OPENAI_API_KEY`
+- `MANIM_WORKER_URL`
+- `CHROMA_API_KEY`
+- `CHROMA_DATABASE`
+- `CHROMA_TENANT`
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET`
+- `R2_PUBLIC_BASE_URL`
+- `LANGFUSE_PUBLIC_KEY`
+- `LANGFUSE_SECRET_KEY`
+- `LANGFUSE_BASE_URL` or `LANGFUSE_HOST`
+- `LANGFUSE_TIMEOUT` optional, defaults to `15` in this app
+- `LANGFUSE_FLUSH_AT` optional, defaults to `64` in this app
+- `LANGFUSE_FLUSH_INTERVAL` optional, defaults to `2` in this app
+- `LANGFUSE_TRACING_ENVIRONMENT` optional, e.g. `development`
+- `LANGFUSE_AUTH_CHECK_ON_STARTUP` optional, set to `true` for a startup connectivity check
+
+## Testing
 
 ```bash
 pytest -q
 ```
 
-6. Start the optional API (if uncommented)
-
-```bash
-python -m uvicorn src.api.main:app --reload
-```
-
-## Codebase overview
-
-- `src/agent/` — agent code and prompt enhancement (`enhance_prompt.py`).
-- `src/rag/` — chunking and indexing utilities for RAG.
-- `src/api/main.py` — optional FastAPI endpoint (commented by default).
-- `src/manim_docs/` — Manim helper modules and example scene code.
-- `pyproject.toml` — dependencies and packaging metadata.
-- `langgraph.json` — LangGraph workflow definition used for deployments.
-- `tests/` — unit and integration tests.
-
-## Examples
-
-1) Call the API (if self-hosted)
-
-POST /run
-
-Request body:
-
-```json
-{ "prompt": "Animate a circle turning into a square" }
-```
-
-Response (success):
-
-```json
-{ "result": "https://.../generated_video.mp4", "status": "success" }
-```
-
-2) Run a quick local render (example developer flow)
-
-```bash
-# Create a prompt payload and POST to /run, or call the agent runner directly from a script
-python -c "from src.agent.enhance_prompt import enhance; print(enhance('Make a bouncing ball'))"
-```
-
-## Troubleshooting & tips
-
-- Rendering slow? Use a dedicated worker or scale compute for Manim tasks. Reduce resolution for testing.
-- Langsmith tracing failing? Confirm `LANGSMITH_API_KEY` and `LANGSMITH_TRACING=true`.
-- Import errors after enabling API? Ensure you run from repo root and `PYTHONPATH` includes project root or run with `python -m uvicorn src.api.main:app`.
-
-## Contributing
-
-Contributions are welcome! Typical workflow:
-
-1. Fork the repo
-2. Create a feature branch
-3. Add tests and documentation
-4. Open a pull request
-
-Please follow pep8 formatting and add unit tests for new features.
-
 ## License
 
-This project includes a `LICENSE` file in the repository root. Review it for licensing details.
-
----
-
-If you'd like I can also:
-
-- add a `docker-compose.yml` for local testing (worker + API + vector DB),
-- create a `quickstart.md` with screenshots and sample prompts, or
-- pin dependency versions and add `requirements-dev.txt`.
-
-## Special thanks
-
-Special thanks to the Manim community for their beautiful documentation, examples, and continuous support — their work greatly inspired this project. See the official docs: https://docs.manim.community/en/stable/index.html
-Note: Manim library and Manim Community edition are different, refer manim community docs for more details.
+See [LICENSE](/Users/pushpitkamboj/PersonalProjects/AnimAI/LICENSE).

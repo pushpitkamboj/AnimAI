@@ -1,3 +1,9 @@
+"""Legacy experimental fine-tune code generation path.
+
+This module is retained for historical reference and is not used by the
+active production pipeline.
+"""
+
 from e2b import Sandbox
 from dotenv import load_dotenv
 import asyncio

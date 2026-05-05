@@ -1,108 +1,217 @@
-from dotenv import load_dotenv
-load_dotenv()
+from __future__ import annotations
 
-from langchain.chat_models import init_chat_model
-from langchain_core.messages import AIMessage
-from pydantic import BaseModel
-from agent.graph_state import State
+import ast
+import json
+import re
+from typing import Any
 
-llm = init_chat_model("openai:gpt-4.1")
-# llm = init_chat_model("google_genai:gemini-2.5-flash-lite")
-from os import getenv
+from typing_extensions import TypedDict
 
-# llm = init_chat_model(
-#     model="openai/gpt-4.1",
-#     model_provider="openai",
-#     base_url="https://openrouter.ai/api/v1",
-#     api_key=getenv("OPENROUTER_API_KEY"),
-# )
+from agent.graph_state import CodeOutline, State
+from agent.llm import make_llm
+from api.language_registry import get_language_name
+from rag.retriever import format_evidence_block, format_foundation_block, get_foundation_chunks
 
-class output_code(BaseModel):
+
+llm = make_llm("openai:gpt-5.4")
+
+
+class CodeOutput(TypedDict):
     code: str
     scene_name: str
 
-def generate_code(state: State):
-    system_prompt = f"""
-    You are an expert Manim (Community Edition) developer for educational content. Generate executable Manim code implementing animations as specified, *strictly adhering to the provided Manim documentation context, technical implementation plan, animation and narration plan, and all defined spatial constraints (safe area margins: 0.5 units, minimum spacing: 0.3 units)*.
 
-    Think of reusable animation components for a clean, modular, and maintainable library, *prioritizing code structure and best practices as demonstrated in the Manim documentation context*. *Throughout code generation, rigorously validate all spatial positioning and animations against the defined safe area margins and minimum spacing constraints. If any potential constraint violation is detected, generate a comment in the code highlighting the issue for manual review and correction.*
+OUTLINE_PROMPT = """
+You are designing the code architecture for a single Manim educational scene.
 
-    Input Context:
+You will receive:
+- the user prompt,
+- a grounded topic brief,
+- a global scene spec,
+- an ordered shot plan,
+- and shot-level evidence.
 
-        {state["mapped_chunks"]}
-    You are an expert Manim (Community Edition) developer for educational content. Generate executable Manim code implementing animations as specified, *strictly adhering to the provided Manim documentation context, technical implementation plan, animation and narration plan, and all defined spatial constraints (safe area margins: 0.5 units, minimum spacing: 0.3 units)*.
+Return a structured code outline with:
+- scene_name
+- scene_class
+- imports
+- persistent_objects
+- helper_functions
+- shot_functions
+- transition_rules
+- validation_checks
 
-    Think of reusable animation components for a clean, modular, and maintainable library, *prioritizing code structure and best practices as demonstrated in the Manim documentation context*. *Throughout code generation, rigorously validate all spatial positioning and animations against the defined safe area margins and minimum spacing constraints. If any potential constraint violation is detected, generate a comment in the code highlighting the issue for manual review and correction.*
+Requirements:
+- The output must describe one coherent scene class.
+- Reuse objects across shots whenever possible.
+- Prefer transformations over recreating everything.
+- Keep layout stable and educationally legible.
+- Prefer plain-text labels via Text or MarkupText unless a numerical readout really
+  needs DecimalNumber.
+- Do not rely on LaTeX-heavy rendering for the primary explanation.
+- The scene must inherit from VoiceoverScene and use GTTSService.
+""".strip()
 
 
-    **Code Generation Guidelines:**
+CODE_PROMPT = """
+You are generating final Manim code for a grounded educational video.
 
-    2.  **Imports:** Include ALL necessary imports explicitly at the top of the file, based on used Manim classes, functions, colors, and constants. Do not rely on implicit imports. Double-check for required modules, classes, functions, colors, and constants, *ensuring all imports are valid and consistent with the Manim Documentation*.  **Include imports for any used Manim plugins.**
-    4.  **Reusable Animations:** Implement functions for each animation sequence to create modular and reusable code. Structure code into well-defined functions, following function definition patterns from Manim Documentation.
-    6.  **Comments:** Add clear and concise comments for complex animations, spatial logic (positioning, arrangements), and object lifecycle management. *Use comments extensively to explain code logic, especially for spatial positioning, animation sequences, and constraint enforcement, mirroring commenting style in Manim Documentation*.  **Add comments to explain the purpose and usage of any Manim plugins.**
-    7.  **Error Handling & Constraint Validation:** Implement basic error handling if error handling strategies are suggested or exemplified in the Manim Documentation. **Critically, during code generation, implement explicit checks to validate if each object's position and animation adheres to the safe area margins (0.5 units) and minimum spacing (0.3 units).**
-    8.  **Performance:** Follow Manim best practices for efficient code and rendering performance, as recommended in the Manim Documentation.
-    9.  **Manim Plugins:** You are allowed and encouraged to use established, well-documented Manim plugins if they simplify the code, improve efficiency, or provide functionality not readily available in core Manim.
-        *   **If a plugin is used:**
-            *   Include the necessary import statement at the top of the file.
-            *   Add a comment indicating the plugin used and its purpose: `### Plugin: <plugin_name> - <brief justification>`.
-            *   Ensure all plugin usage adheres to the plugin's documentation.
-    10. **No External Assets:** No external files (images, audio, video). *Use only Manim built-in elements and procedural generation, or elements provided by approved Manim plugins. No external assets are allowed*.
-    11. **No Main Function:** Only scene class. No `if __name__ == "__main__":`.
-    12. **Spatial Accuracy (Paramount):** Achieve accurate spatial positioning as described in the technical implementation plan, *strictly using relative positioning methods (`next_to`, `align_to`, `shift`, VGroups) and enforcing safe area margins and minimum 0.3 unit spacing, as documented in Manim Documentation Context*. *Spatial accuracy and constraint adherence are the highest priorities in code generation.*
-    13. **VGroup Structure:** Implement VGroup hierarchy precisely as defined in the Technical Implementation Plan, using documented VGroup methods for object grouping and manipulation.
-    14. **Spacing & Margins (Strict Enforcement):** Adhere strictly to safe area margins (0.5 units) and minimum spacing (0.3 units) requirements for *all* objects and VGroups throughout the scene and all animations. Prevent overlaps and ensure all objects stay within the safe area. *Rigorously enforce spacing and margin requirements using `buff` parameters, relative positioning, and explicit constraint validation checks during code generation, and validate against safe area guidelines from Manim Documentation Context*.
-    15. **Background:** Default background (Black) is sufficient. Do not create custom color background Rectangles.
-    16. **Text Color:** Do not use BLACK color for any text. Use predefined colors (BLUE_C, BLUE_D, GREEN_C, GREEN_D, GREY_A, GREY_B, GREY_C, LIGHTER_GRAY, LIGHT_GRAY, GOLD_C, GOLD_D, PURPLE_C, TEAL_C, TEAL_D, WHITE).
-    17. **Default Colors:** You MUST use the provided color definitions if you use colors in your code. ONLY USE THE COLORS PREVIOUSLY DEFINED.
-    18. **Animation Timings and Narration Sync:** Implement animations with precise `run_time` values and synchronize them with the narration script according to the Animation and Narration Plan. Use `Wait()` commands with specified durations for transition buffers.
-    19. **Don't be lazy on code generation:** Generate full, complete code including all helper functions. Ensure that the output is comprehensive and the code is fully functional, incorporating all necessary helper methods and complete scene implementation details.
-    20. **LaTeX Package Handling:** If the technical implementation plan specifies the need for additional LaTeX packages:
-        *   Create a `TexTemplate` object.
-        *   Use `myTemplate = TexTemplate()`
-        *   Use `myTemplate.add_to_preamble(r"\\usepackage{{package_name}}")` to add the required package.
-        *   Pass this template to the `Tex` or `MathTex` object: `tex = Tex(..., tex_template=myTemplate)`.
+You will receive:
+- the user prompt,
+- a grounded topic brief,
+- a scene specification,
+- an ordered shot plan,
+- shot-level evidence packs,
+- and a code outline.
 
-    **Example Code Style and Structure to Emulate:**
+Hard requirements:
+- Generate one executable Python scene class.
+- The class must inherit from VoiceoverScene.
+- Configure self.set_speech_service(GTTSService(lang="{language}", tld="com")).
+- All narration strings, spoken voiceover text, and user-facing on-screen labels must be
+  written in the target language: {language_name}.
+- If the user's prompt is in a different language, translate the final educational
+  narration and visible labels into {language_name} while keeping code identifiers and
+  Manim API names in English.
+- Keep continuity across shots and reuse persistent objects.
+- Use helper methods when the outline asks for them.
+- Prefer evidence-supported Manim APIs and common CE patterns.
+- Prefer Text or MarkupText for explanatory labels and formulas to keep rendering robust.
+- Use DecimalNumber for changing numeric values when needed.
+- Avoid unsupported custom abstractions.
+- Keep the visual design clean, educational, and readable.
+- Do not include markdown fences.
+- Do not include if __name__ == "__main__".
 
-    *   **Helper Classes:** Utilize helper classes (like `Scene2_Helper`) to encapsulate object creation and scene logic, promoting modularity and reusability.
-    *   **Stage-Based `construct` Method:** Structure the `construct` method into logical stages (e.g., Stage 1, Stage 2, Stage 3) with comments to organize the scene flow.
-    *   **Reusable Object Creation Functions:** Define reusable functions within helper classes for creating specific Manim objects (e.g., `create_axes`, `create_formula_tex`, `create_explanation_text`).
-    *   **Clear Comments and Variable Names:** Use clear, concise comments to explain code sections and logic. Employ descriptive variable names (e.g., `linear_function_formula`, `logistic_plot`) for better readability.
-    *   **Text Elements:** Create text elements using `Tex` or `MathTex` for formulas and explanations, styling them with `color` and `font_size` as needed.
-    *   **Manim Best Practices:** Follow Manim best practices, including using `VoiceoverScene`, `KokoroService`, common Manim objects, animations, relative positioning, and predefined colors.
+Preferred API families:
+- layout: VGroup, Group, next_to, arrange, to_edge, align_to, shift
+- graphing: Axes, NumberPlane, FunctionGraph, ParametricFunction, DashedLine
+- geometry: Circle, Dot, Line, Arrow, Arc, Polygon, Rectangle, Square
+- updates: ValueTracker, always_redraw
+- motion: Create, FadeIn, FadeOut, Transform, ReplacementTransform, MoveAlongPath,
+  LaggedStart, Succession, AnimationGroup, Indicate, Circumscribe, Flash
 
-    **VOICE**
-    *   **Use GTTS for voice with the language what the user has mentioned is his user prompt => {state["language"]}
-    You MUST generate the Python code in the following format (from <CODE> to </CODE>):
-    <CODE>
-    class GTTSExample(VoiceoverScene):
-    def construct(self):
-        self.set_speech_service(GTTSService(lang={state["language"]}, tld="com"))
+Do not switch the whole scene layout abruptly unless the outline explicitly requires it.
+""".strip()
 
-        circle = Circle()
-        square = Square().shift(2 * RIGHT)
 
-        with self.voiceover(text="This circle is drawn as I speak.") as tracker:
-            self.play(Create(circle), run_time=tracker.duration)
+FIX_PROMPT = """
+You are repairing Manim code after deterministic validation failed.
 
-        with self.voiceover(text="Let's shift it to the left 2 units.") as tracker:
-            self.play(circle.animate.shift(2 * LEFT), run_time=tracker.duration)
+Fix only the issues listed. Preserve the intended scene.
+Return structured output with:
+- code
+- scene_name
+""".strip()
 
-        with self.voiceover(text="Now, let's transform it into a square.") as tracker:
-            self.play(Transform(circle, square), run_time=tracker.duration)
 
-        with self.voiceover(text="Thank you for watching."):
-            self.play(Uncreate(circle))
+def _ordered_shots(state: State) -> list[dict[str, Any]]:
+    return sorted(state.get("shot_plan", []), key=lambda shot: shot["order"])
 
-        self.wait()
-    </CODE>"""
-    
-    structured_llm = llm.with_structured_output(output_code)
-    response = structured_llm.invoke([{"role": "system", "content": system_prompt}] + state["messages"])
-    
-    return{
-        "code": response.code,
-        "scene_name": response.scene_name
+
+def _ordered_evidence(state: State) -> list[dict[str, Any]]:
+    evidence = state.get("retrieval_evidence", [])
+    shot_order = {shot["shot_id"]: shot["order"] for shot in _ordered_shots(state)}
+    return sorted(evidence, key=lambda item: shot_order.get(item["shot_id"], 999))
+
+
+def _outline_payload(state: State) -> str:
+    payload = {
+        "prompt": state.get("prompt", ""),
+        "topic_brief": state.get("topic_brief", {}),
+        "scene_spec": state.get("scene_spec", {}),
+        "shot_plan": _ordered_shots(state),
+        "evidence_summary": [
+            {
+                "shot_id": item["shot_id"],
+                "allowed_symbols": item["allowed_symbols"],
+                "notes": item["notes"],
+            }
+            for item in _ordered_evidence(state)
+        ],
     }
-    
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def _code_payload(state: State) -> str:
+    evidence_blocks = [format_evidence_block(item) for item in _ordered_evidence(state)]
+    foundation_chunks = get_foundation_chunks()
+    language = state.get("language", "en") or "en"
+    payload = {
+        "prompt": state.get("prompt", ""),
+        "target_language": language,
+        "topic_brief": state.get("topic_brief", {}),
+        "scene_spec": state.get("scene_spec", {}),
+        "shot_plan": _ordered_shots(state),
+        "code_outline": state.get("code_outline", {}),
+        "foundation_block": format_foundation_block(foundation_chunks),
+        "evidence_blocks": evidence_blocks,
+    }
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def _validate_generated_code(code: str, scene_name: str) -> list[str]:
+    errors: list[str] = []
+    if "```" in code:
+        errors.append("Code contains markdown fences.")
+
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as exc:
+        return [f"SyntaxError: {exc}"]
+
+    class_names = [node.name for node in tree.body if isinstance(node, ast.ClassDef)]
+    if scene_name not in class_names:
+        errors.append(f"scene_name '{scene_name}' does not match any class in the code.")
+    if "VoiceoverScene" not in code:
+        errors.append("VoiceoverScene is missing.")
+    if "GTTSService" not in code:
+        errors.append("GTTSService is missing.")
+    if "set_speech_service" not in code:
+        errors.append("set_speech_service call is missing.")
+    return errors
+
+
+def generate_code_outline(state: State) -> dict:
+    response = llm.with_structured_output(CodeOutline).invoke(
+        [("system", OUTLINE_PROMPT), ("human", _outline_payload(state))],
+    )
+    return {"code_outline": response}
+
+
+def generate_code(state: State) -> dict:
+    language = state.get("language", "en")
+    language_name = get_language_name(language)
+    response = llm.with_structured_output(CodeOutput).invoke(
+        [
+            ("system", CODE_PROMPT.format(language=language, language_name=language_name)),
+            ("human", _code_payload(state)),
+        ],
+    )
+    code = response["code"]
+    scene_name = response["scene_name"]
+    validation_errors = _validate_generated_code(code, scene_name)
+    if validation_errors:
+        fix_response = llm.with_structured_output(CodeOutput).invoke(
+            [
+                ("system", FIX_PROMPT),
+                (
+                    "human",
+                    json.dumps(
+                        {
+                            "errors": validation_errors,
+                            "code": code,
+                            "scene_name": scene_name,
+                            "code_outline": state.get("code_outline", {}),
+                            "scene_spec": state.get("scene_spec", {}),
+                        },
+                        ensure_ascii=False,
+                    ),
+                ),
+            ],
+        )
+        code = fix_response["code"]
+        scene_name = fix_response["scene_name"]
+
+    code = re.sub(r"^```(?:python)?\n|\n```$", "", code.strip(), flags=re.MULTILINE)
+    return {"code": code, "scene_name": scene_name}

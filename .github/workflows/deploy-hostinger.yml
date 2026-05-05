@@ -1,0 +1,50 @@
+name: Deploy AnimAI to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Deploy to Hostinger
+        uses: hostinger/deploy-action@v1
+        with:
+          api-key: ${{ secrets.HOSTINGER_API_KEY }}
+          virtual-machine: ${{ vars.HOSTINGER_VM_ID }}
+          project-name: animai
+          docker-compose-path: docker-compose.hostinger.yml
+          environment-variables: |
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            SEMANTIC_CACHE_ENABLED=${{ vars.SEMANTIC_CACHE_ENABLED }}
+            CHROMA_OPENAI_API_KEY=${{ secrets.CHROMA_OPENAI_API_KEY }}
+            CHROMA_OPENAI_EMBEDDING_MODEL=${{ vars.CHROMA_OPENAI_EMBEDDING_MODEL }}
+            CHROMA_API_KEY=${{ secrets.CHROMA_API_KEY }}
+            CHROMA_HOST=${{ vars.CHROMA_HOST }}
+            CHROMA_TENANT=${{ vars.CHROMA_TENANT }}
+            CHROMA_DATABASE=${{ vars.CHROMA_DATABASE }}
+            R2_ACCOUNT_ID=${{ secrets.R2_ACCOUNT_ID }}
+            R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }}
+            R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }}
+            R2_BUCKET=${{ vars.R2_BUCKET }}
+            R2_PUBLIC_BASE_URL=${{ vars.R2_PUBLIC_BASE_URL }}
+            SKIP_UPLOAD=${{ vars.SKIP_UPLOAD }}
+            PUBLIC_MEDIA_BASE_URL=${{ vars.PUBLIC_MEDIA_BASE_URL }}
+            LANGFUSE_PUBLIC_KEY=${{ secrets.LANGFUSE_PUBLIC_KEY }}
+            LANGFUSE_SECRET_KEY=${{ secrets.LANGFUSE_SECRET_KEY }}
+            LANGFUSE_BASE_URL=${{ vars.LANGFUSE_BASE_URL }}
+            LANGFUSE_HOST=${{ vars.LANGFUSE_HOST }}
+            LANGFUSE_TIMEOUT=${{ vars.LANGFUSE_TIMEOUT }}
+            LANGFUSE_FLUSH_AT=${{ vars.LANGFUSE_FLUSH_AT }}
+            LANGFUSE_FLUSH_INTERVAL=${{ vars.LANGFUSE_FLUSH_INTERVAL }}
+            LANGFUSE_TRACING_ENVIRONMENT=${{ vars.LANGFUSE_TRACING_ENVIRONMENT }}
+            LANGFUSE_AUTH_CHECK_ON_STARTUP=${{ vars.LANGFUSE_AUTH_CHECK_ON_STARTUP }}
+            MANIM_RENDER_TIMEOUT_SECONDS=${{ vars.MANIM_RENDER_TIMEOUT_SECONDS }}
+            MANIM_QUALITY_FLAG=${{ vars.MANIM_QUALITY_FLAG }}
+            KEEP_RENDER_ARTIFACTS=${{ vars.KEEP_RENDER_ARTIFACTS }}

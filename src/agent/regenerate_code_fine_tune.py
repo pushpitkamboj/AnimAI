@@ -1,4 +1,10 @@
 from agent.graph_state import State
+"""Legacy experimental fine-tune recovery path.
+
+This module is retained for historical reference and is not used by the
+active production pipeline.
+"""
+
 from typing import Literal
 from pydantic import BaseModel
 from langgraph.graph import END

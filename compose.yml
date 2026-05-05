@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      MANIM_WORKER_URL: http://manim-worker:8080
+    ports:
+      - "8000:8000"
+    depends_on:
+      - manim-worker
+
+  manim-worker:
+    build:
+      context: .
+      dockerfile: manim-worker/Dockerfile
+    env_file:
+      - .env
+    environment:
+      PUBLIC_MEDIA_BASE_URL: http://localhost:8080/published
+    ports:
+      - "8080:8080"
+    volumes:
+      - worker-media:/tmp/manim-worker
+
+volumes:
+  worker-media:
