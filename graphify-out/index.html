@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AnimAI Graphify Output</title>
+  <style>
+    body {
+      margin: 0;
+      color: #1f2937;
+      background: #f8fafc;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 30px;
+      line-height: 1.2;
+    }
+
+    p {
+      margin: 0 0 24px;
+      color: #475569;
+    }
+
+    section {
+      margin-top: 24px;
+      padding: 20px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 18px;
+    }
+
+    .mermaid {
+      min-width: 760px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>AnimAI Graphify Output</h1>
+    <p>Generated from the current repository structure and active LangGraph workflow.</p>
+
+    <section>
+      <h2>LangGraph Workflow</h2>
+      <pre class="mermaid">
+flowchart TD
+    START([START]) --> analyze_user_prompt[analyze_user_prompt]
+    analyze_user_prompt -->|animation required| route_prompt_for_grounding[route_prompt_for_grounding]
+    analyze_user_prompt -->|non-animation| END([END])
+    route_prompt_for_grounding --> build_topic_brief[build_topic_brief]
+    build_topic_brief --> plan_video[plan_video]
+    plan_video -->|for each shot via Send| get_chunks[get_chunks]
+    get_chunks --> generate_code_outline[generate_code_outline]
+    generate_code_outline --> generate_code[generate_code]
+    generate_code --> execute_code[execute_code]
+    execute_code -->|render success| END
+    execute_code -->|repairable failure| correct_code[correct_code]
+    execute_code -->|repeated failure| simplify_code[simplify_code]
+    execute_code -->|max failures| END
+    correct_code --> execute_code
+    simplify_code --> execute_code
+      </pre>
+    </section>
+
+    <section>
+      <h2>Runtime Architecture</h2>
+      <pre class="mermaid">
+flowchart LR
+    Client[Client] -->|POST /run| API[src/api/main.py]
+    API -->|optional semantic lookup| Chroma[(Chroma video cache)]
+    API -->|ainvoke| Graph[src/agent/graph.py]
+    API -->|trace callbacks| Langfuse[(Langfuse)]
+    Graph --> Analyze[analyze_user_prompt]
+    Analyze --> Research[research_router + research_topic]
+    Research --> Planner[plan_video]
+    Planner --> Retrieval[src/rag retriever]
+    Retrieval --> CodeGen[generate_code_outline + generate_code]
+    CodeGen --> Executor[src/agent/execute_code.py]
+    Executor -->|POST /jobs| Worker[manim-worker/app.py]
+    Worker -->|run manim| Manim[Manim renderer]
+    Worker -->|upload final mp4| R2[(R2 bucket)]
+    Worker -->|local fallback| Published[/published static files]
+    Executor -->|poll /jobs/{job_id}| Worker
+    Worker -->|job status + video_url| Executor
+    Executor --> Graph
+    Graph --> API
+    API -->|cache successful URL| Chroma
+    API -->|JSON result| Client
+    Worker -->|worker observations| Langfuse
+      </pre>
+    </section>
+
+    <section>
+      <h2>Module Map</h2>
+      <pre class="mermaid">
+flowchart TD
+    api_main[src/api/main.py] --> agent_graph[src/agent/graph.py]
+    api_main --> chroma_utils[src/chroma_utils.py]
+    api_main --> observability[src/observability/langfuse.py]
+    agent_graph --> analyze[src/agent/analyze_user_prompt.py]
+    agent_graph --> router[src/agent/research_router.py]
+    agent_graph --> topic[src/agent/research_topic.py]
+    agent_graph --> plan[src/agent/plan_video.py]
+    agent_graph --> map_reduce[src/agent/map_reduce.py]
+    agent_graph --> gen[src/agent/generate_code.py]
+    agent_graph --> regen[src/agent/regenerate_code.py]
+    agent_graph --> execute[src/agent/execute_code.py]
+    agent_graph --> state[src/agent/graph_state.py]
+    map_reduce --> retriever[src/rag/retriever.py]
+    regen --> retriever
+    gen --> retriever
+    retriever --> reranker[src/rag/reranker.py]
+    retriever --> query_builder[src/rag/query_builder.py]
+    retriever --> chunks[src/rag/chunks.py]
+    retriever --> examples[src/rag/example_chunks.py]
+    retriever --> synthetic[src/rag/synthetic_chunks.py]
+    execute --> worker[manim-worker/app.py]
+    worker --> r2[(Cloudflare R2)]
+    worker --> manim[(manim CLI)]
+    subgraph Legacy
+        graph_ft[src/agent/graph_fine_tune.py]
+        ft_agent[src/agent/fine_tune_agent/]
+    end
+      </pre>
+    </section>
+  </main>
+
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true, securityLevel: "loose", theme: "default" });
+  </script>
+</body>
+</html>

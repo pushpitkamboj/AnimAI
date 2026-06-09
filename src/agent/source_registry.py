@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True) # frozen=True makes the instances of the class immutable, meaning that once an instance is created, its attributes cannot be modified. This is useful for ensuring that the data remains consistent and prevents accidental changes.
 class DomainSourceConfig:
     domain: str
     preferred_domains: tuple[str, ...]

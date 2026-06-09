@@ -1,0 +1,21 @@
+flowchart TD
+    START([START]) --> analyze_user_prompt[analyze_user_prompt]
+
+    analyze_user_prompt -->|animation required| route_prompt_for_grounding[route_prompt_for_grounding]
+    analyze_user_prompt -->|non-animation| END([END])
+
+    route_prompt_for_grounding --> build_topic_brief[build_topic_brief]
+    build_topic_brief --> plan_video[plan_video]
+
+    plan_video -->|for each shot via Send| get_chunks[get_chunks]
+    get_chunks --> generate_code_outline[generate_code_outline]
+    generate_code_outline --> generate_code[generate_code]
+    generate_code --> execute_code[execute_code]
+
+    execute_code -->|render success| END
+    execute_code -->|repairable failure| correct_code[correct_code]
+    execute_code -->|repeated failure| simplify_code[simplify_code]
+    execute_code -->|max failures| END
+
+    correct_code --> execute_code
+    simplify_code --> execute_code

@@ -79,7 +79,7 @@ def plan_video(state: State) -> dict:
                         "route_info": state["route_info"],
                         "topic_brief": state["topic_brief"],
                     },
-                    ensure_ascii=False,
+                    ensure_ascii=False, #make sure non english are presevred correctly
                 ),
             ),
         ],

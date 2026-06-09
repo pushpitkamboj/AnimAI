@@ -83,7 +83,7 @@ def _invoke_structured(schema, system_prompt: str, payload: dict):
     return llm.with_structured_output(schema).invoke(
         [
             ("system", system_prompt),
-            ("human", json.dumps(payload, ensure_ascii=False)),
+            ("human", json.dumps(payload)),
         ],
     )
 
@@ -99,7 +99,7 @@ def _build_search_queries(prompt: str, route_info: RouteInfo) -> list[str]:
             "query_hints": list(domain_config.query_hints),
         },
     )
-    queries = [query.strip() for query in response.get("queries", []) if query.strip()]
+    queries = [query.strip() for query in response.get("queries", []) if query.strip()] # if its non empty, then keep it
     if queries:
         return queries[:4]
 
@@ -240,7 +240,7 @@ def build_topic_brief(state: State) -> dict:
     prompt = state["prompt"]
     route_info = state["route_info"]
     queries, evidence_blocks = _collect_web_evidence(prompt, route_info)
-    topic_brief = _synthesize_topic_brief(prompt, route_info, queries, evidence_blocks)
+    topic_brief: TopicBrief = _synthesize_topic_brief(prompt, route_info, queries, evidence_blocks)
 
     summary = topic_brief.get("factual_summary", "").strip()
     message = summary or f"Built topic brief for {topic_brief.get('topic_title', 'the topic')}."

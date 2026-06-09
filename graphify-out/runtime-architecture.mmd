@@ -1,0 +1,27 @@
+flowchart LR
+    Client[Client] -->|POST /run| API[src/api/main.py]
+
+    API -->|optional semantic lookup| Chroma[(Chroma video cache)]
+    API -->|ainvoke| Graph[src/agent/graph.py]
+    API -->|trace callbacks| Langfuse[(Langfuse)]
+
+    Graph --> Analyze[analyze_user_prompt]
+    Analyze --> Research[research_router + research_topic]
+    Research --> Planner[plan_video]
+    Planner --> Retrieval[src/rag retriever]
+    Retrieval --> CodeGen[generate_code_outline + generate_code]
+    CodeGen --> Executor[src/agent/execute_code.py]
+
+    Executor -->|POST /jobs| Worker[manim-worker/app.py]
+    Worker -->|run manim| Manim[Manim renderer]
+    Worker -->|upload final mp4| R2[(R2 bucket)]
+    Worker -->|local fallback| Published[/published static files]
+
+    Executor -->|poll /jobs/{job_id}| Worker
+    Worker -->|job status + video_url| Executor
+    Executor --> Graph
+    Graph --> API
+    API -->|cache successful URL| Chroma
+    API -->|JSON result| Client
+
+    Worker -->|worker observations| Langfuse

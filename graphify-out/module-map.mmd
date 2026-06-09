@@ -1,0 +1,32 @@
+flowchart TD
+    api_main[src/api/main.py] --> agent_graph[src/agent/graph.py]
+    api_main --> chroma_utils[src/chroma_utils.py]
+    api_main --> observability[src/observability/langfuse.py]
+
+    agent_graph --> analyze[src/agent/analyze_user_prompt.py]
+    agent_graph --> router[src/agent/research_router.py]
+    agent_graph --> topic[src/agent/research_topic.py]
+    agent_graph --> plan[src/agent/plan_video.py]
+    agent_graph --> map_reduce[src/agent/map_reduce.py]
+    agent_graph --> gen[src/agent/generate_code.py]
+    agent_graph --> regen[src/agent/regenerate_code.py]
+    agent_graph --> execute[src/agent/execute_code.py]
+    agent_graph --> state[src/agent/graph_state.py]
+
+    map_reduce --> retriever[src/rag/retriever.py]
+    regen --> retriever
+    gen --> retriever
+    retriever --> reranker[src/rag/reranker.py]
+    retriever --> query_builder[src/rag/query_builder.py]
+    retriever --> chunks[src/rag/chunks.py]
+    retriever --> examples[src/rag/example_chunks.py]
+    retriever --> synthetic[src/rag/synthetic_chunks.py]
+
+    execute --> worker[manim-worker/app.py]
+    worker --> r2[(Cloudflare R2)]
+    worker --> manim[(manim CLI)]
+
+    subgraph Legacy
+        graph_ft[src/agent/graph_fine_tune.py]
+        ft_agent[src/agent/fine_tune_agent/]
+    end

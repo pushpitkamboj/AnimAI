@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import requests
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from langgraph.errors import GraphRecursionError
@@ -14,16 +14,8 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from chroma_utils import chroma_query_enabled, embed_texts, get_chroma_cloud_client
-
-try:
-    import httpx
-except Exception:  # pragma: no cover - httpx is installed transitively in runtime
-    httpx = None
-
-try:
-    from openai import APITimeoutError
-except Exception:  # pragma: no cover - local env may not have openai installed
-    APITimeoutError = None
+import httpx
+from openai import APITimeoutError
 
 load_dotenv()
 
@@ -69,12 +61,12 @@ async def startup_event() -> None:
 def _generation_error_status_code(error_message: str) -> int:
     normalized = error_message.lower()
     if "timed out" in normalized:
-        return 504
+        return status.HTTP_504_GATEWAY_TIMEOUT
     if "failed to submit render job" in normalized or "failed to poll render job" in normalized:
-        return 502
+        return status.HTTP_502_BAD_GATEWAY
     if "manim_worker_url is not configured" in normalized:
-        return 503
-    return 500
+        return status.HTTP_503_SERVICE_UNAVAILABLE
+    return status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 def _semantic_cache_enabled() -> bool:
@@ -114,6 +106,13 @@ def _is_timeout_exception(exc: BaseException) -> bool:
     return False
 
 
+def _error_response(message: str, status_code: int) -> JSONResponse:
+    return JSONResponse(
+        status_code=status_code,
+        content={"result": message, "status": "error"},
+    )
+
+
 def _get_cache_collection():
     if not _semantic_cache_enabled():
         logger.info("Semantic cache disabled")
@@ -139,14 +138,14 @@ def _get_cached_video_url(prompt: str) -> str | None:
         if collection is None:
             return None
 
-        query_embeddings = embed_texts([prompt])
+        query_embeddings = embed_texts([prompt]) #convert the prompt into embeddings using the embed_texts function
         if not query_embeddings:
             return None
 
         result = collection.query(query_embeddings=query_embeddings, n_results=1)
         distances = result.get("distances", [[]])
         metadatas = result.get("metadatas", [[]])
-        if not distances or not metadatas:
+        if not distances or not metadatas or not distances[0] or not metadatas[0]:
             return None
 
         distance = distances[0][0]
@@ -240,39 +239,32 @@ async def run_pipeline(payload: RunRequest, request: Request):
             if not video_url:
                 sandbox_error = (result.get("sandbox_error") or "").strip()
                 status_code = _generation_error_status_code(sandbox_error)
-                return JSONResponse(
-                    status_code=status_code,
-                    content={
-                        "result": sandbox_error or "Video generation failed after multiple attempts",
-                        "status": "error",
-                    },
+                return _error_response(
+                    sandbox_error or "Video generation failed after multiple attempts",
+                    status_code,
                 )
 
             _cache_video_url(payload.prompt, video_url)
             return {"result": video_url, "status": "success"}
-    except GraphRecursionError:
-        return JSONResponse(
-            status_code=500,
-            content={
-                "result": "Video generation failed after maximum recovery attempts",
-                "status": "error",
-            },
-        )
+
     except HTTPException:
         raise
+    except GraphRecursionError:
+        logger.warning("Workflow recursion limit reached while processing animation request", exc_info=True)
+        return _error_response(
+            "Video generation failed after maximum recovery attempts",
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
     except Exception as exc:
         if _is_timeout_exception(exc):
             logger.warning("Upstream timeout while processing animation request", exc_info=True)
-            return JSONResponse(
-                status_code=504,
-                content={
-                    "result": "Upstream service timed out while generating the video. Please retry.",
-                    "status": "error",
-                },
+            return _error_response(
+                "Upstream service timed out while generating the video. Please retry.",
+                status.HTTP_504_GATEWAY_TIMEOUT,
             )
 
         logger.exception("Unexpected server error while processing request")
-        return JSONResponse(
-            status_code=500,
-            content={"result": "Unexpected server error", "status": "error"},
+        return _error_response(
+            "Unexpected server error",
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

@@ -4,14 +4,14 @@ from typing_extensions import TypedDict
 
 from langgraph.types import Send
 
-from agent.graph_state import State
+from agent.graph_state import SceneSpec, ShotPlan, State, TopicBrief
 from rag.retriever import retrieve_shot_evidence
 
 
 class ShotRetrievalState(TypedDict):
-    shot: dict
-    scene_spec: dict
-    topic_brief: dict
+    shot: ShotPlan
+    scene_spec: SceneSpec
+    topic_brief: TopicBrief
     prompt: str
 
 

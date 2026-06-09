@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ast import In
 import os
 from functools import lru_cache
 
@@ -17,7 +18,8 @@ def chroma_query_enabled() -> bool:
     return all(os.getenv(name) for name in required) and _chroma_openai_api_key_env_var() is not None
 
 
-@lru_cache(maxsize=1)
+@lru_cache(maxsize=1) # it caches the result of the function, so that subsequent calls with the same arguments return the cached result instead of recomputing it. 
+#In this case, since there are no arguments, it will cache the first computed value and return it for all future calls.
 def get_chroma_embedding_function():
     api_key_env_var = _chroma_openai_api_key_env_var()
     if api_key_env_var is None:
